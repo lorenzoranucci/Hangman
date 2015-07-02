@@ -22,12 +22,14 @@ import java.io.InputStream;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
+
+//qualcosa
 public class Boia {
     private Mat frame1;
     private Mat frame2;
 
     boolean acceso=true;
-    int primiFrame=5;
+    
 
 
     public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame){
@@ -48,13 +50,6 @@ public class Boia {
 
 
     public void spostaLaTesta(){
-        if(acceso){
-            acceso=false;
 
-        }
-        else{
-            acceso=true;
-
-        }
     }
 }
