@@ -51,6 +51,9 @@ public class Boia {
             faceNotFoundCounter++;
         }
         return frameGrey;
+
+
+
     }
 
     private Rect riconoscimentoVolto(Mat image){
@@ -78,3 +81,18 @@ public class Boia {
 
     }
 }
+
+
+/*
+* SFONDO
+* Point point= new Point(r.x + r.width*0.5, r.y + r.height*0.5 );
+                Size size= new Size(r.width,r.height);
+                Scalar color= new Scalar(0,255,0);
+               // Imgproc.ellipse(image, point, new Size(r.width * 0.5, r.height * 0.5), 0, 0, 360, new Scalar(255, 0, 255), 4, 8, 0);
+                //Imgproc.rectangle(image, new Point(r.x, r.y), new Point(r.x + r.width, r.y + r.height), new Scalar(0, 255, 0));
+                Mat bgd=new Mat();
+                Mat fgd= new Mat();
+                Mat mask = new Mat(image.size(),CvType.CV_8U);
+
+                Imgproc.cvtColor(image, image, Imgproc.COLOR_RGBA2RGB);
+                Imgproc.grabCut(image, mask, r, bgd, fgd, 1,Imgproc.GC_INIT_WITH_MASK);*/
