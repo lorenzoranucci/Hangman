@@ -1,6 +1,7 @@
 package it.ranuccipagoni.tagliatorediteste;
 
 import android.content.Context;
+import android.util.Log;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.core.CvType;
@@ -14,10 +15,12 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 
 /**
  * Created by Lorenzo on 01/07/2015.
@@ -25,25 +28,47 @@ import java.io.InputStream;
 
 //qualcosa
 public class Boia {
-    private Mat frame1;
-    private Mat frame2;
-
-    boolean acceso=true;
+    private Mat frameRGB;
+    private Mat frameGrey;
+    private final CascadeClassifier mJavaDetector;
+    private Long faceNotFoundCounter= new Long(0);
     
 
-
-    public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame){
-        frame1=inputFrame.rgba();
-        frame2=inputFrame.gray();
-        if(acceso){
-            return frame1;
-        }
-        else{
-            return frame2;
-        }
+    public Boia(CascadeClassifier mJavaDetector){
+        this.mJavaDetector=mJavaDetector;
     }
 
+    public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        Mat currentFrameRGB = inputFrame.rgba();
+        Mat currentFrameGrey = inputFrame.gray();
+        Rect r=riconoscimentoVolto(currentFrameGrey);
+        if(r!=null){
+            Imgproc.rectangle(currentFrameGrey, new Point(r.x, r.y), new Point(r.x + r.width, r.y + r.height), new Scalar(0, 255, 0));
+            frameGrey=currentFrameGrey;
+        }
+        else{
+            Log.i("Boia:FaceDetection","Volto non trovato");
+            faceNotFoundCounter++;
+        }
+        return frameGrey;
+    }
 
+    private Rect riconoscimentoVolto(Mat image){
+        try {
+            MatOfRect faceDetections = new MatOfRect();
+            mJavaDetector.detectMultiScale(image, faceDetections);
+            System.out.println(String.format("Detected %s faces", faceDetections.toArray().length));
+            Rect[] recta = faceDetections.toArray();
+            Rect r = recta[0];
+            return r;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+        //Imgproc.ellipse(image, new Point(r.x + r.width*0.5, r.y + r.height*0.5 ), new Size(r.width * 0.5, r.height * 0.5), 0, 0, 360, new Scalar(255, 0, 255), 4, 8, 0);
+
+    }
 
 
 

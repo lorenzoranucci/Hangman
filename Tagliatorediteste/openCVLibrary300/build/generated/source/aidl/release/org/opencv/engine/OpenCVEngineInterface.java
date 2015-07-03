@@ -1,6 +1,6 @@
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: C:\\Users\\loryzizu\\Lavoro\\AndroidProjects\\Tagliatore di Teste\\Tagliatorediteste\\openCVLibrary300\\src\\main\\aidl\\org\\opencv\\engine\\OpenCVEngineInterface.aidl
+ * Original file: C:\\Users\\loryzizu\\Lavoro\\AndroidProjects\\TagliatoreDiTesteRepo\\tagliatore-di-teste\\Tagliatorediteste\\openCVLibrary300\\src\\main\\aidl\\org\\opencv\\engine\\OpenCVEngineInterface.aidl
  */
 package org.opencv.engine;
 /**

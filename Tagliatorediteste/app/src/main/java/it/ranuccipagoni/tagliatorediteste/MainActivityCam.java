@@ -12,8 +12,12 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.JavaCameraView;
 import org.opencv.core.Mat;
+import org.opencv.objdetect.CascadeClassifier;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -26,22 +30,49 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     } //the name of the .so file, without the 'lib' prefix
 
     private CameraBridgeViewBase mOpenCvCameraView;
+
+
     private Boia boia;
+
+    private void initBoia() throws FileNotFoundException, IOException{
+            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+            File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            FileOutputStream os = new FileOutputStream(mCascadeFile);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+            is.close();
+            os.close();
+            CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+            this.boia=new Boia(mJavaDetector);
+    }
+
+
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         Log.d(TAG, "Creating and setting view");
-        mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
-        setContentView(mOpenCvCameraView);
-        mOpenCvCameraView.setCvCameraViewListener(this);
-        mOpenCvCameraView.setOnTouchListener(this);
-        mOpenCvCameraView.enableView();
-        boia=new Boia();
+        try{
+            initBoia();
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
+            setContentView(mOpenCvCameraView);
+            mOpenCvCameraView.setCvCameraViewListener(this);
+            mOpenCvCameraView.setOnTouchListener(this);
+            mOpenCvCameraView.enableView();
+        }
+        catch (IOException i){
+            i.printStackTrace();
+            setContentView(R.layout.error);
+        }
     }
+
+
 
     @Override
     public void onPause()
@@ -90,7 +121,9 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     //Ritorna il frame elaborato
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+
         return boia.decapita(inputFrame);
+
     }
 
 
