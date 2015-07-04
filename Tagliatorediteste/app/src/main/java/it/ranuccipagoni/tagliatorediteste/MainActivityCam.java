@@ -34,21 +34,7 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
     private Boia boia;
 
-    private void initBoia() throws FileNotFoundException, IOException{
-            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
-            File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-            File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
-            FileOutputStream os = new FileOutputStream(mCascadeFile);
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = is.read(buffer)) != -1) {
-                os.write(buffer, 0, bytesRead);
-            }
-            is.close();
-            os.close();
-            CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-            this.boia=new Boia(mJavaDetector);
-    }
+
 
 
 
@@ -73,6 +59,23 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     }
 
 
+    private void initBoia() throws FileNotFoundException, IOException{
+        InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+        File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+        File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+        FileOutputStream os = new FileOutputStream(mCascadeFile);
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = is.read(buffer)) != -1) {
+            os.write(buffer, 0, bytesRead);
+        }
+        is.close();
+        os.close();
+        CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+        this.boia=new Boia(mJavaDetector);
+    }
+
+
 
     @Override
     public void onPause()
@@ -82,33 +85,16 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
             mOpenCvCameraView.disableView();// disabilita la fotocamera
     }
 
+    @Override
     public void onDestroy() {
         super.onDestroy();
         if (mOpenCvCameraView != null)
             mOpenCvCameraView.disableView();// disabilita la fotocamera
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     @Override
     public void onCameraViewStarted(int width, int height) {
-
+        boia.setCameraViewSize(width, height);
     }
 
     @Override
@@ -126,38 +112,11 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     //Quando tocco la vista v, viene chiamato sto metodo
     //ritorna true se il metodo ha "consumato" event, false altrimenti
-    //@Override
+    @Override
     public boolean onTouch(View v, MotionEvent event) {
-        InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
-        File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-        boia.spostaLaTesta();
-        return true;
+        boia.saveCurrentFrameAsBackgroundMask();
+        return false;
     }
 }
