@@ -2,8 +2,11 @@ package it.ranuccipagoni.tagliatorediteste;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -24,12 +27,13 @@ import java.io.InputStream;
  * Created by Lorenzo on 01/07/2015.
  */
 public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener {
+
     private static final String TAG="MainActivityCam";
     static {
         System.loadLibrary("opencv_java3");
     } //the name of the .so file, without the 'lib' prefix
 
-    private CameraBridgeViewBase mOpenCvCameraView;
+    private JavaCameraView mOpenCvCameraView;
 
 
     private Boia boia;
@@ -46,10 +50,11 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         try{
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
+            mOpenCvCameraView = (JavaCameraView) new JavaCameraView(this, -1);
             setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
+            if (mOpenCvCameraView != null && !mOpenCvCameraView.isEnabled());
             mOpenCvCameraView.enableView();
         }
         catch (IOException i){
@@ -77,13 +82,17 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
 
 
-    @Override
+  /*  @Override
     public void onPause()
     {
         super.onPause();
-        if (mOpenCvCameraView != null)
+
+        if (mOpenCvCameraView != null &&  mOpenCvCameraView.isEnabled())
             mOpenCvCameraView.disableView();// disabilita la fotocamera
-    }
+
+    }*/
+
+
 
     @Override
     public void onDestroy() {
@@ -94,7 +103,7 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
     @Override
     public void onCameraViewStarted(int width, int height) {
-        boia.setCameraViewSize(width, height);
+        //boia.setCameraViewSize(width, height);
     }
 
     @Override
@@ -107,16 +116,22 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     //Ritorna il frame elaborato
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-
         return boia.decapita(inputFrame);
-
     }
 
     //Quando tocco la vista v, viene chiamato sto metodo
     //ritorna true se il metodo ha "consumato" event, false altrimenti
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        boia.saveCurrentFrameAsBackgroundMask();
+        //boia.saveCurrentFrameAsBackgroundMask();
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int width = size.x;
+        int height = size.y;
+
+
+        boia.setPointWhereToPutTheFace(event, width, height);
         return false;
     }
 }

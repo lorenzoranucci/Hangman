@@ -2,6 +2,7 @@ package it.ranuccipagoni.tagliatorediteste;
 
 import android.content.Context;
 import android.util.Log;
+import android.view.MotionEvent;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.core.CvType;
@@ -33,11 +34,12 @@ public class Boia {
 
 
     private Mat frameOnScreen;
+    private Mat currentFrame;
 
     private int cameraViewHeight;
     private int cameraViewWidth;
 
-    private Point pointWhereToPutTheFace;
+    private Point pointWhereToPutTheFace=new Point(0,0);
 
     List<Mat> backgroundMasks= new ArrayList<Mat>();
     
@@ -47,12 +49,11 @@ public class Boia {
     }
 
     public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        frameOnScreen = inputFrame.rgba();
-
+        //frameOnScreen = inputFrame.rgba();
+        currentFrame= inputFrame.rgba();
         Mat currentGreyFrame = inputFrame.gray();
-
         Rect r=riconoscimentoVolto(currentGreyFrame);
-        if(r!=null){
+        if(r!=null) {
             //Imgproc.ellipse(image, new Point(r.x + r.width*0.5, r.y + r.height*0.5 ), new Size(r.width * 0.5, r.height * 0.5), 0, 0, 360, new Scalar(255, 0, 255), 4, 8, 0);
             //Imgproc.rectangle(currentGreyFrame, new Point(r.x, r.y), new Point(r.x + r.width, r.y + r.height), new Scalar(0, 255, 0));
             /*Fare grabcut e ottenere sagoma della testa
@@ -64,8 +65,9 @@ public class Boia {
             *   */
             spostaVolto(r);
         }
-
-        //return frameGrey;
+        else{
+            frameOnScreen=currentFrame;
+        }
         return frameOnScreen;
     }
 
@@ -94,15 +96,13 @@ public class Boia {
         }
     }
 
-    private void spostaVolto(Rect r){
-        Mat frameVolto=frameOnScreen.submat(r);
+
+
+    private synchronized void spostaVolto(Rect r){
+
+
         int width=frameOnScreen.width();
         int height=frameOnScreen.height();
-
-        int smallWidth= frameVolto.width();
-        int smallHeight= frameVolto.height();
-
-
         int rectX= r.x;
         int rectY= r.y;
         int rectWidth= r.width;
@@ -110,28 +110,30 @@ public class Boia {
 
 
         //if(backgroundMasks.size()>0) {
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-                   /* if(i>rectX && i<rectX+rectWidth && j> rectY && j< rectY+rectHeight ){
-                        try {
-                            Mat bg = backgroundMasks.get(0);
-                            frameOnScreen.put(i, j, bg.get(i, j));
-                        }catch (Exception e){
-
-                        }
-                    }*/
-
-                //disegno il volto in un angolo
-                if (i < smallWidth && j < smallHeight) {
-                    try {
-                        frameOnScreen.put(i, j, frameVolto.get(i, j));
-                    }catch (Exception e){
-
-                    }
+        int cntX=0;
+        int cntY=0;
+        if(pointWhereToPutTheFace!=null){
+            cntX=(int)pointWhereToPutTheFace.x-rectWidth/2;
+            cntY=(int)pointWhereToPutTheFace.y-rectHeight/2;
+        }
+        int limitX=rectX+rectWidth;
+        int limitY=rectY+rectHeight;
+        for (int x = rectX; x < limitX; x=x+2) {
+            cntX++;
+            int cntY2=cntY;
+            for (int y = rectY; y < limitY; y=y+2) {
+                cntY2++;
+                if(cntX>0 && cntY2>0 && cntX<width && cntY2<height){
+                   try {
+                       frameOnScreen.put(cntX, cntY2, currentFrame.get(x, y));
+                   }
+                   catch (UnsupportedOperationException e){
+                       Log.e("Boia:","Put");
+                   }
                 }
             }
         }
-        //}
+
     }
 
 
@@ -139,31 +141,20 @@ public class Boia {
 
 
 
-    public void saveCurrentFrameAsBackgroundMask(){
-        backgroundMasks.add(this.frameOnScreen);
+
+
+
+    public void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight){
+        double bitmapWidth=frameOnScreen.width()*2.25;
+        double bitmapHeight=frameOnScreen.height()*2.25;
+        double borderWidth=(screenWidth-bitmapWidth)/2;
+        double borderHeight=(screenHeight-bitmapWidth)/2;
+        pointWhereToPutTheFace.y=(event.getX()-borderWidth)/2.25;
+        pointWhereToPutTheFace.x=(event.getY()-borderHeight)/2.25;
     }
 
-    public void setCameraViewSize(int width, int height){
-        cameraViewHeight=width;
-        cameraViewHeight=height;
-        double widthD= (double) width/2;
-        double heightD=(double) height/2;
-        pointWhereToPutTheFace= new Point(widthD,heightD);
-        frameOnScreen= new Mat(width,height,CvType.CV_8UC4);
-    }
+
+
 }
 
 
-/*
-* SFONDO
-* Point point= new Point(r.x + r.width*0.5, r.y + r.height*0.5 );
-                Size size= new Size(r.width,r.height);
-                Scalar color= new Scalar(0,255,0);
-               // Imgproc.ellipse(image, point, new Size(r.width * 0.5, r.height * 0.5), 0, 0, 360, new Scalar(255, 0, 255), 4, 8, 0);
-                //Imgproc.rectangle(image, new Point(r.x, r.y), new Point(r.x + r.width, r.y + r.height), new Scalar(0, 255, 0));
-                Mat bgd=new Mat();
-                Mat fgd= new Mat();
-                Mat mask = new Mat(image.size(),CvType.CV_8U);
-
-                Imgproc.cvtColor(image, image, Imgproc.COLOR_RGBA2RGB);
-                Imgproc.grabCut(image, mask, r, bgd, fgd, 1,Imgproc.GC_INIT_WITH_MASK);*/
