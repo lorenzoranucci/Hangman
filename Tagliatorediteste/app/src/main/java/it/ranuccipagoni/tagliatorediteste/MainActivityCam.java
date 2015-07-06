@@ -2,14 +2,17 @@ package it.ranuccipagoni.tagliatorediteste;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
@@ -33,10 +36,11 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         System.loadLibrary("opencv_java3");
     } //the name of the .so file, without the 'lib' prefix
 
-    private JavaCameraView mOpenCvCameraView;
+    private CameraBridgeViewBase mOpenCvCameraView;
 
 
     private Boia boia;
+
 
 
 
@@ -50,12 +54,13 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         try{
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            mOpenCvCameraView = (JavaCameraView) new JavaCameraView(this, -1);
+            mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
+            mOpenCvCameraView.setMaxFrameSize(320,240);
             setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
-            if (mOpenCvCameraView != null && !mOpenCvCameraView.isEnabled());
             mOpenCvCameraView.enableView();
+
         }
         catch (IOException i){
             i.printStackTrace();
@@ -82,15 +87,6 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
 
 
-  /*  @Override
-    public void onPause()
-    {
-        super.onPause();
-
-        if (mOpenCvCameraView != null &&  mOpenCvCameraView.isEnabled())
-            mOpenCvCameraView.disableView();// disabilita la fotocamera
-
-    }*/
 
 
 
@@ -134,4 +130,19 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         boia.setPointWhereToPutTheFace(event, width, height);
         return false;
     }
+
+    private boolean checkCameraHardware(Context context) {
+        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
+            // this device has a camera
+            Toast.makeText(this, "Phone has camera", Toast.LENGTH_LONG).show();
+            return true;
+        } else {
+            // no camera on this device
+            Toast.makeText(this, "Phone has no camera", Toast.LENGTH_LONG).show();
+            return false;
+        }
+    }
+
+
+
 }

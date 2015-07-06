@@ -48,7 +48,7 @@ public class Boia {
         this.mJavaDetector=mJavaDetector;
     }
 
-    public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+    public synchronized Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         //frameOnScreen = inputFrame.rgba();
         currentFrame= inputFrame.rgba();
         Mat currentGreyFrame = inputFrame.gray();
@@ -73,7 +73,7 @@ public class Boia {
 
 
 
-    private Rect riconoscimentoVolto(Mat image){
+    private synchronized Rect riconoscimentoVolto(Mat image){
         try {
             MatOfRect faceDetections = new MatOfRect();
             mJavaDetector.detectMultiScale(image, faceDetections);
@@ -109,7 +109,6 @@ public class Boia {
         int rectHeight=r.height;
 
 
-        //if(backgroundMasks.size()>0) {
         int cntX=0;
         int cntY=0;
         if(pointWhereToPutTheFace!=null){
@@ -118,11 +117,11 @@ public class Boia {
         }
         int limitX=rectX+rectWidth;
         int limitY=rectY+rectHeight;
-        for (int x = rectX; x < limitX; x=x+2) {
-            cntX++;
+        for (int x = rectX; x < limitX; x=x+1) {
+            cntX=cntX+1;
             int cntY2=cntY;
-            for (int y = rectY; y < limitY; y=y+2) {
-                cntY2++;
+            for (int y = rectY; y < limitY; y=y+1) {
+                cntY2=cntY2+1;
                 if(cntX>0 && cntY2>0 && cntX<width && cntY2<height){
                    try {
                        frameOnScreen.put(cntX, cntY2, currentFrame.get(x, y));
@@ -144,11 +143,11 @@ public class Boia {
 
 
 
-    public void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight){
+    public synchronized void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight){
         double bitmapWidth=frameOnScreen.width()*2.25;
         double bitmapHeight=frameOnScreen.height()*2.25;
         double borderWidth=(screenWidth-bitmapWidth)/2;
-        double borderHeight=(screenHeight-bitmapWidth)/2;
+        double borderHeight=(screenHeight-bitmapHeight)/2;
         pointWhereToPutTheFace.y=(event.getX()-borderWidth)/2.25;
         pointWhereToPutTheFace.x=(event.getY()-borderHeight)/2.25;
     }
