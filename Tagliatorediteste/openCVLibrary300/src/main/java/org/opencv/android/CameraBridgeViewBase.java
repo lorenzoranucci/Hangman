@@ -57,6 +57,11 @@ public abstract class CameraBridgeViewBase extends SurfaceView implements Surfac
     public static final int RGBA = 1;
     public static final int GRAY = 2;
 
+    //custom method by Lorenzo Ranucci
+    public float getScale(){
+        return mScale;
+    }
+
     public CameraBridgeViewBase(Context context, int cameraId) {
         super(context);
         mCameraIndex = cameraId;

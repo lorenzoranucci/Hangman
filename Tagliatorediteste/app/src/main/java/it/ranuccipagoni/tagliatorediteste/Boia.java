@@ -35,7 +35,8 @@ public class Boia {
     private Mat frameOnScreen;//frame drawn on the screen
 
     private Mat currentFrame;// temp frame for detect face
-    private Mat lastFaceFrame=null;// last frame with the face
+    private Mat lastFaceFrame;// last frame with the face
+    private Rect lastFaceRect;
     private long facesNotDetectedCounter=10;
 
 
@@ -48,13 +49,13 @@ public class Boia {
         this.mJavaDetector=mJavaDetector;
     }
 
-    public  Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+    public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         currentFrame= inputFrame.rgba();
-        Mat currentGreyFrame = inputFrame.gray();
         Rect rect;
         if((rect=faceDetect())!=null){//modify currentFrame
             facesNotDetectedCounter=0;
             lastFaceFrame=currentFrame.submat(rect);
+            lastFaceRect=rect;
             moveFace();
         }else{
             facesNotDetectedCounter++;
@@ -71,7 +72,8 @@ public class Boia {
 
     private Rect faceDetect(){
         MatOfRect faceDetections = new MatOfRect();
-        mJavaDetector.detectMultiScale(currentFrame, faceDetections);
+        Mat temp=currentFrame;
+        mJavaDetector.detectMultiScale(temp, faceDetections);
         Rect[] rects = faceDetections.toArray();
         Rect maxRect=null;
         if(rects.length>0){
@@ -90,7 +92,7 @@ public class Boia {
 
 
 
-    private synchronized void moveFace(){
+    private void moveFace(){
         if(lastFaceFrame!=null) {
             int width=currentFrame.width();
             int height=currentFrame.height();
@@ -98,39 +100,38 @@ public class Boia {
             int faceFrameWidth=lastFaceFrame.cols();
             int faceFrameHeight=lastFaceFrame.rows();
 
-            int cntX=0;
-            int cntY=0;
+            int col=0;
+            int row=0;
             if(pointWhereToPutTheFace!=null){
-                cntX=(int)pointWhereToPutTheFace.x-faceFrameWidth/2;
-                cntY=(int)pointWhereToPutTheFace.y-faceFrameHeight/2;
+                col=(int)pointWhereToPutTheFace.x-(faceFrameWidth/2);
+                row=(int)pointWhereToPutTheFace.y-(faceFrameHeight/2);
             }
-            for (int x = 0; x < faceFrameWidth; x=x+1) {
-                cntX=cntX+1;
-                int cntY2=cntY;
-                for (int y = 0; y < faceFrameHeight; y=y+1) {
-                    cntY2=cntY2+1;
-                    if(cntX>0 && cntY2>0 && cntX<width && cntY2<height){
+            for (int rowFace = 0; rowFace < faceFrameHeight; rowFace=rowFace+1) {
+                for (int colFace = 0; colFace < faceFrameWidth; colFace=colFace+1) {
+                    int col2=col+colFace;
+                    if(col2>0 && row>0 && col2<width && row<height){
                         try {
-                            currentFrame.put(cntX, cntY2, lastFaceFrame.get(x, y));
+                            currentFrame.put(row, col2, lastFaceFrame.get(rowFace, colFace));
                         }
                         catch (UnsupportedOperationException e){
                             Log.i("Boia:","PutError");
                         }
                     }
                 }
+                row++;
             }
         }
     }
 
 
 
-    public void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight){
-        double bitmapWidth=frameOnScreen.width()*2.25;
-        double bitmapHeight=frameOnScreen.height()*2.25;
+    public void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale){
+        double bitmapWidth=frameOnScreen.width()*scale;
+        double bitmapHeight=frameOnScreen.height()*scale;
         double borderWidth=(screenWidth-bitmapWidth)/2;
         double borderHeight=(screenHeight-bitmapHeight)/2;
-        pointWhereToPutTheFace.y=(event.getX()-borderWidth)/2.25;
-        pointWhereToPutTheFace.x=(event.getY()-borderHeight)/2.25;
+        pointWhereToPutTheFace.x=(event.getX()-borderWidth)/scale;
+        pointWhereToPutTheFace.y=(event.getY()-borderHeight)/scale;
     }
 
 

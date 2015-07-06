@@ -54,7 +54,6 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
-            //mOpenCvCameraView.setMaxFrameSize(320,240);
             setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
@@ -137,7 +136,7 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         int height = size.y;
 
 
-        boia.setPointWhereToPutTheFace(event, width, height);
+        boia.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getScale());
         return false;
     }
 
