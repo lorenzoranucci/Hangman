@@ -50,12 +50,11 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "Creating and setting view");
         try{
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
-            mOpenCvCameraView.setMaxFrameSize(320,240);
+            //mOpenCvCameraView.setMaxFrameSize(320,240);
             setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
@@ -98,8 +97,19 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();// disabilita la fotocamera
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
     public void onCameraViewStarted(int width, int height) {
-        //boia.setCameraViewSize(width, height);
     }
 
     @Override
