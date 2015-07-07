@@ -54,6 +54,8 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
+            //mOpenCvCameraView.setMaxFrameSize(320,240);
+            mOpenCvCameraView.enableFpsMeter();
             setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
@@ -91,20 +93,25 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mOpenCvCameraView != null)
+        if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();// disabilita la fotocamera
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (mOpenCvCameraView != null)
+        if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();// disabilita la fotocamera
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        if (mOpenCvCameraView != null) {
+            mOpenCvCameraView.enableView();// abilita la fotocamera
+        }
     }
 
     @Override
@@ -116,16 +123,13 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
     }
 
-    //Questo metodo viene chiamato ogni volta che la fotocamera cattura un fotogramma.
-    //Riceve come parametro il Frame catturato
-    //Ritorna il frame elaborato
+
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         return boia.decapita(inputFrame);
     }
 
-    //Quando tocco la vista v, viene chiamato sto metodo
-    //ritorna true se il metodo ha "consumato" event, false altrimenti
+
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         //boia.saveCurrentFrameAsBackgroundMask();
