@@ -4,10 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
-import android.graphics.Rect;
-import android.hardware.Camera;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
@@ -31,7 +28,6 @@ import java.io.InputStream;
  */
 public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener {
 
-    private static final String TAG="MainActivityCam";
     static {
         System.loadLibrary("opencv_java3");
     } //the name of the .so file, without the 'lib' prefix
