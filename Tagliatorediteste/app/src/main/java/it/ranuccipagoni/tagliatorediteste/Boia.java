@@ -19,9 +19,14 @@ public class Boia {
     private final CascadeClassifier mJavaDetector;
 
     private Mat frameOnScreen;//frame drawn on the screen
+    private Mat lastFaceFrame;
+    private Rect sourceFaceROI;
+    private Rect destFaceROI;
     private Point pointWhereToPutTheFace=new Point(0,0);
     private List<Mat> backgroundsList= new ArrayList<Mat>();
     private int cntBG=0;
+    private int cntOldFaceShows=0;
+
 
 
     public Boia(CascadeClassifier mJavaDetector){
@@ -35,18 +40,29 @@ public class Boia {
             backgroundsList.add(currentFrame.clone());
         }
         else{
-            Rect sourceFaceROI;
-            if((sourceFaceROI=faceDetect(currentFrame))!=null) {//modify currentFrame
-                Mat faceFrame = new Mat(currentFrame,sourceFaceROI);
-                Rect destFaceROI=getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
-                moveFace(currentFrame, faceFrame, destFaceROI);
+            Rect tempSourceFaceROI;
+            if(currentFrame!=null &&
+                    (tempSourceFaceROI=faceDetect(currentFrame))!=null) {
+                sourceFaceROI=tempSourceFaceROI.clone();
+                destFaceROI=getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
+                lastFaceFrame = currentFrame.clone();//clone fa in modo che se cambio currentframe non cambia anche faceframe
+                cntOldFaceShows=0;
+            }
+            if(lastFaceFrame != null
+                    && destFaceROI != null
+                    && sourceFaceROI != null
+                    && backgroundsList != null
+                    && ! backgroundsList.isEmpty()
+                    && cntOldFaceShows<100){
+                Mat currentFrameTemp=currentFrame.clone();
                 Mat backgroundFrame=backgroundsList.get(9).clone();
-                replaceFaceWith(currentFrame,backgroundFrame,sourceFaceROI);
-                backgroundFrame.release();
+                copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, null);
+                copyMatToMat(currentFrameTemp, backgroundFrame, sourceFaceROI, sourceFaceROI, null);
+                currentFrame=currentFrameTemp;
+                cntOldFaceShows++;
             }
         }
-        frameOnScreen=currentFrame.clone();
-        currentFrame.release();
+        frameOnScreen=currentFrame;
         return frameOnScreen;
     }
 
@@ -69,48 +85,38 @@ public class Boia {
         return null;
     }
 
-
-
-
-
-
-
-    private  Mat moveFace(Mat currentFrame, Mat faceFrame,  Rect destFaceROI){
-         if (faceFrame != null
-                 && currentFrame!=null
-                 && destFaceROI !=null
-                 && backgroundsList!=null && !backgroundsList.isEmpty()) {
-             if (destFaceROI.width < currentFrame.width()
-                     && destFaceROI.height < currentFrame.height()
-                     && destFaceROI.x >= 0
-                     && destFaceROI.y >= 0) {
-                 faceFrame.copyTo(currentFrame.submat(destFaceROI));
-             }
-         }
-        return currentFrame;
-    }
-
-    private Mat replaceFaceWith(Mat currentFrame, Mat replaceFrame, Rect sourceFaceROI){
-        if(currentFrame!=null
-                && replaceFrame!=null
-                && sourceFaceROI!=null){
-            if(sourceFaceROI.width <= replaceFrame.width() && sourceFaceROI.height<= replaceFrame.height()){
-                Mat backgroundFrame= replaceFrame.submat(sourceFaceROI);
-                backgroundFrame.copyTo(currentFrame.submat(sourceFaceROI));
+    private Mat copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask){
+        if (destination !=null
+                && source!=null
+                && destinationROI.height == sourceROI.height
+                && destinationROI.width  == sourceROI.width
+                && sourceROI.width<=source.width()
+                && sourceROI.height<= source.height()
+                && destinationROI.width<=destination.width()
+                && destinationROI.height<= destination.height()
+                ){
+            Mat temp= source.clone().submat(sourceROI);
+            if(mask!=null){
+                temp.copyTo(destination.submat(destinationROI), mask);
+            }
+            else{
+                temp.copyTo(destination.submat(destinationROI));
             }
         }
-        return currentFrame;
+        return destination;
     }
 
 
 
-    public  void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale){
-        double bitmapWidth=frameOnScreen.width()*scale;
-        double bitmapHeight=frameOnScreen.height()*scale;
-        double borderWidth=(screenWidth-bitmapWidth)/2;
-        double borderHeight=(screenHeight-bitmapHeight)/2;
-        pointWhereToPutTheFace.x=(event.getX()-borderWidth)/scale;
-        pointWhereToPutTheFace.y=(event.getY()-borderHeight)/scale;
+    public  void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale) {
+        if (frameOnScreen != null) {
+            double bitmapWidth = frameOnScreen.width() * scale;
+            double bitmapHeight = frameOnScreen.height() * scale;
+            double borderWidth = (screenWidth - bitmapWidth) / 2;
+            double borderHeight = (screenHeight - bitmapHeight) / 2;
+            pointWhereToPutTheFace.x = (event.getX() - borderWidth) / scale;
+            pointWhereToPutTheFace.y = (event.getY() - borderHeight) / scale;
+        }
     }
 
     public synchronized Rect getDestFaceROI(int faceWidth,int faceHeight, Mat currentFrame){
@@ -150,7 +156,10 @@ public class Boia {
         return rect;
     }
 
+   /* public Mat backgroundDifference(Mat image, Mat mask){
 
+    }
+*/
 
 }
 

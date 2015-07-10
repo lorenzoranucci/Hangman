@@ -128,15 +128,14 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        //boia.saveCurrentFrameAsBackgroundMask();
-        Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
-        int width = size.x;
-        int height = size.y;
-
-
-        boia.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getScale());
+        if(boia!=null){
+            Display display = getWindowManager().getDefaultDisplay();
+            Point size = new Point();
+            display.getSize(size);
+            int width = size.x;
+            int height = size.y;
+            boia.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getScale());
+        }
         return false;
     }
 
