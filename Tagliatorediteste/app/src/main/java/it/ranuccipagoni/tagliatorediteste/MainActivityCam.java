@@ -18,7 +18,6 @@ import org.opencv.core.Mat;
 import org.opencv.objdetect.CascadeClassifier;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,8 +48,8 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         try{
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            mOpenCvCameraView = (CameraBridgeViewBase) new JavaCameraView(this, -1);
-            //mOpenCvCameraView.setMaxFrameSize(320,240);
+            mOpenCvCameraView =  new JavaCameraView(this, -1);
+            mOpenCvCameraView.setMaxFrameSize(640,480);
             mOpenCvCameraView.enableFpsMeter();
             setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
@@ -65,7 +64,7 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     }
 
 
-    private void initBoia() throws FileNotFoundException, IOException{
+    private void initBoia() throws  IOException{
         InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
         File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
         File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
