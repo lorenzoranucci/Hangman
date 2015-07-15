@@ -1,13 +1,18 @@
 package it.ranuccipagoni.tagliatorediteste;
 
+import android.util.Log;
 import android.view.MotionEvent;
 
 import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.objdetect.CascadeClassifier;
+import org.opencv.video.BackgroundSubtractorMOG2;
+import org.opencv.video.Video;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,16 +63,41 @@ public class Boia {
                         ) {
                     Mat currentFrameTemp = currentFrame.clone();
                     Mat backgroundFrame = backgroundsList.get(9).clone();
-                    copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, null);
-                    copyMatToMat(currentFrameTemp, backgroundFrame, sourceFaceROI, sourceFaceROI, null);
+                    Mat backgroundMask=getBackgroundMask(lastFaceFrame.submat(sourceFaceROI), backgroundFrame.submat(sourceFaceROI), new Mat());
+
+                    copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask );
+                    copyMatToMat(currentFrameTemp, backgroundFrame, sourceFaceROI, sourceFaceROI, backgroundMask);
                     currentFrame = currentFrameTemp;
-                    backgroundFrame.release();
                 }
             }
         }
         return currentFrame;
     }
 
+
+    private Mat getBackgroundMask(Mat image, Mat background, Mat diffImage){
+        Core.absdiff(image, background , diffImage);
+        Mat foreGroundMask= Mat.zeros(diffImage.rows(),diffImage.cols(), CvType.CV_8UC1);
+        float threshold = 100;
+        double dist;
+        int cnt=0;
+        for(int j=0; j<diffImage.rows(); ++j) {
+            for (int i = 0; i < diffImage.cols(); ++i) {
+                double pix[] = diffImage.get(j, i);
+
+                dist = (pix[0] * pix[0] + pix[1] * pix[1] + pix[2] * pix[2]);
+                dist = Math.sqrt(dist);
+
+                if (dist < threshold) {
+                    foreGroundMask.put(j, i, 255);
+                    cnt++;
+                }
+            }
+        }
+        int totPix=diffImage.rows() * diffImage.cols();
+        Log.i("Background subtraction","Num tot pix: "+totPix+". PixForeg: "+cnt);
+        return foreGroundMask;
+    }
 
 
     private Rect faceDetect(Mat currentFrame){
@@ -87,7 +117,7 @@ public class Boia {
         return null;
     }
 
-    private Mat copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask){
+    private void copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask){
         if (destination !=null
                 && source!=null
                 && destinationROI.height == sourceROI.height
@@ -107,7 +137,6 @@ public class Boia {
             }
             tempS.release();
         }
-        return destination;
     }
 
 
