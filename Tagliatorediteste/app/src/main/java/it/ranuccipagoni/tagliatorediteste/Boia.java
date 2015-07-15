@@ -18,10 +18,9 @@ import java.util.List;
 public class Boia {
     private final CascadeClassifier mJavaDetector;
 
-    private Mat frameOnScreen;//frame drawn on the screen
-    private Mat lastFaceFrame;
-    private Rect sourceFaceROI;
-    private Rect destFaceROI;
+    private Integer frameWidth;
+    private Integer frameHeight;
+
     private Point pointWhereToPutTheFace=new Point(0,0);
     private List<Mat> backgroundsList= new ArrayList<>();
     private int cntBG=0;
@@ -35,6 +34,11 @@ public class Boia {
 
     public  Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame= inputFrame.rgba();
+        frameWidth=currentFrame.width();
+        frameHeight=currentFrame.height();
+        Rect sourceFaceROI=null;
+        Rect destFaceROI=null;
+        Mat lastFaceFrame=null;
         if(currentFrame!=null) {
             if (cntBG < 10) {
                 cntBG++;
@@ -44,26 +48,24 @@ public class Boia {
                 if ((tempSourceFaceROI = faceDetect(currentFrame)) != null) {
                     sourceFaceROI = tempSourceFaceROI;
                     destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
-                    lastFaceFrame = currentFrame;//clone fa in modo che se cambio currentframe non cambia anche faceframe
-                    cntOldFaceShows = 0;
+                    lastFaceFrame = currentFrame;
                 }
                 if (lastFaceFrame != null
                         && destFaceROI != null
                         && sourceFaceROI != null
                         && backgroundsList != null
                         && !backgroundsList.isEmpty()
-                        && cntOldFaceShows < 100) {
+                        ) {
                     Mat currentFrameTemp = currentFrame.clone();
                     Mat backgroundFrame = backgroundsList.get(9).clone();
                     copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, null);
                     copyMatToMat(currentFrameTemp, backgroundFrame, sourceFaceROI, sourceFaceROI, null);
                     currentFrame = currentFrameTemp;
-                    cntOldFaceShows++;
+                    backgroundFrame.release();
                 }
             }
-            frameOnScreen = currentFrame;
         }
-        return frameOnScreen;
+        return currentFrame;
     }
 
 
@@ -103,6 +105,7 @@ public class Boia {
             else{
                 tempS.copyTo(destination.submat(destinationROI));
             }
+            tempS.release();
         }
         return destination;
     }
@@ -110,9 +113,9 @@ public class Boia {
 
 
     public  void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale) {
-        if (frameOnScreen != null) {
-            double bitmapWidth = frameOnScreen.width() * scale;
-            double bitmapHeight = frameOnScreen.height() * scale;
+        if (frameWidth != null && frameHeight!= null) {
+            double bitmapWidth = frameWidth * scale;
+            double bitmapHeight = frameHeight * scale;
             double borderWidth = (screenWidth - bitmapWidth) / 2;
             double borderHeight = (screenHeight - bitmapHeight) / 2;
             pointWhereToPutTheFace.x = (event.getX() - borderWidth) / scale;
