@@ -11,8 +11,6 @@ import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.objdetect.CascadeClassifier;
-import org.opencv.video.BackgroundSubtractorMOG2;
-import org.opencv.video.Video;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +18,9 @@ import java.util.List;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class Boia {
+public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChangedListener{
     private final CascadeClassifier mJavaDetector;
+    BackgroundMaskCalculatorThread  backgroundThread;
 
     private Integer frameWidth;
     private Integer frameHeight;
@@ -31,14 +30,24 @@ public class Boia {
     private int cntBG=0;
     private int cntOldFaceShows=0;
 
+    private int threshold = 100;
+
 
 
     public Boia(CascadeClassifier mJavaDetector){
         this.mJavaDetector=mJavaDetector;
+        backgroundThread= new BackgroundMaskCalculatorThread(this);
+        backgroundThread.start();
+        backgroundThread.setPriority(Thread.MIN_PRIORITY);
+    }
+
+    public void finalize(){
+        backgroundThread.stop=true;
     }
 
     public  Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame= inputFrame.rgba();
+        backgroundThread.setLastReceivedFrame(currentFrame);
         frameWidth=currentFrame.width();
         frameHeight=currentFrame.height();
         Rect sourceFaceROI=null;
@@ -78,7 +87,7 @@ public class Boia {
     private Mat getBackgroundMask(Mat image, Mat background, Mat diffImage){
         Core.absdiff(image, background , diffImage);
         Mat foreGroundMask= Mat.zeros(diffImage.rows(),diffImage.cols(), CvType.CV_8UC1);
-        float threshold = 100;
+
         double dist;
         int cnt=0;
         for(int j=0; j<diffImage.rows(); ++j) {
@@ -185,11 +194,18 @@ public class Boia {
         return rect;
     }
 
-   /* public Mat backgroundDifference(Mat image, Mat mask){
+   public void setThreshold(int t){
+       this.threshold=t;
+   }
 
+    public int getThreshold(){
+        return this.threshold;
     }
-*/
 
+    @Override
+    public void onBackgroundMaskChanged(Mat backgroundMask) {
+        Log.i("BGListener", "Ricevuto");
+    }
 }
 
 

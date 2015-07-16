@@ -9,6 +9,7 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.SeekBar;
 import android.widget.Toast;
 
 import org.opencv.android.CameraBridgeViewBase;
@@ -25,7 +26,7 @@ import java.io.InputStream;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener {
+public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener {
 
     static {
         System.loadLibrary("opencv_java3");
@@ -38,24 +39,25 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
 
 
-
-
-
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try{
             initBoia();
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            mOpenCvCameraView =  new JavaCameraView(this, -1);
-            mOpenCvCameraView.setMaxFrameSize(640,480);
+            setContentView(R.layout.main);
+            mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.javaCamera);
+            mOpenCvCameraView.setMaxFrameSize(320, 240);
             mOpenCvCameraView.enableFpsMeter();
-            setContentView(mOpenCvCameraView);
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
-
+            SeekBar seekBar= (SeekBar) findViewById(R.id.threshold);
+            seekBar.setOnSeekBarChangeListener(this);
+            seekBar.setMax(200);
+            if (boia!=null){
+                seekBar.setProgress(boia.getThreshold());
+            }
         }
         catch (IOException i){
             i.printStackTrace();
@@ -90,6 +92,9 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         super.onDestroy();
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();// disabilita la fotocamera
+        }
+        if(boia!=null){
+            boia.finalize();
         }
     }
 
@@ -151,5 +156,20 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     }
 
 
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+        if(boia!=null){
+            boia.setThreshold(progress);
+        }
+    }
 
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {
+
+    }
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+
+    }
 }
