@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * Created by Lorenzo on 16/07/2015.
  */
+
 public class BackgroundMaskCalculatorThread extends Thread {
     BackgroundMaskChangedListener listener;
     boolean stop=false;
