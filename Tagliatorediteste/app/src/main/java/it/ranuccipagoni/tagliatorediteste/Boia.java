@@ -1,6 +1,7 @@
 package it.ranuccipagoni.tagliatorediteste;
 
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.MotionEvent;
 
 import org.opencv.android.CameraBridgeViewBase;
@@ -18,42 +19,40 @@ import java.util.List;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChangedListener{
+public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChangedListener {
     private final CascadeClassifier mJavaDetector;
-    BackgroundMaskCalculatorThread  backgroundThread;
+    BackgroundMaskCalculatorThread backgroundThread;
 
     private Integer frameWidth;
     private Integer frameHeight;
 
-    private Point pointWhereToPutTheFace=new Point(0,0);
-    private List<Mat> backgroundsList= new ArrayList<>();
-    private int cntBG=0;
-    private int cntOldFaceShows=0;
+    private Point pointWhereToPutTheFace = new Point(0, 0);
+    private List<Mat> backgroundsList = new ArrayList<>();
+    private int cntBG = 0;
 
-    private int threshold = 100;
-
+    private int threshold = 70;
 
 
-    public Boia(CascadeClassifier mJavaDetector){
-        this.mJavaDetector=mJavaDetector;
-        backgroundThread= new BackgroundMaskCalculatorThread(this);
+    public Boia(CascadeClassifier mJavaDetector) {
+        this.mJavaDetector = mJavaDetector;
+        backgroundThread = new BackgroundMaskCalculatorThread(this);
         backgroundThread.start();
         backgroundThread.setPriority(Thread.MIN_PRIORITY);
     }
 
-    public void finalize(){
-        backgroundThread.stop=true;
+    public void finalize() {
+        backgroundThread.stop = true;
     }
 
-    public  Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        Mat currentFrame= inputFrame.rgba();
+    public Mat decapita(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        Mat currentFrame = inputFrame.rgba();
         backgroundThread.setLastReceivedFrame(currentFrame);
-        frameWidth=currentFrame.width();
-        frameHeight=currentFrame.height();
-        Rect sourceFaceROI=null;
-        Rect destFaceROI=null;
-        Mat lastFaceFrame=null;
-        if(currentFrame!=null) {
+        frameWidth = currentFrame.width();
+        frameHeight = currentFrame.height();
+        Rect sourceFaceROI = null;
+        Rect destFaceROI = null;
+        Mat lastFaceFrame = null;
+        if (currentFrame != null) {
             if (cntBG < 10) {
                 cntBG++;
                 backgroundsList.add(currentFrame.clone());
@@ -61,6 +60,7 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
                 Rect tempSourceFaceROI;
                 if ((tempSourceFaceROI = faceDetect(currentFrame)) != null) {
                     sourceFaceROI = tempSourceFaceROI;
+                    sourceFaceROI=incrementROISize(sourceFaceROI);
                     destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
                     lastFaceFrame = currentFrame;
                 }
@@ -72,9 +72,9 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
                         ) {
                     Mat currentFrameTemp = currentFrame.clone();
                     Mat backgroundFrame = backgroundsList.get(9).clone();
-                    Mat backgroundMask=getBackgroundMask(lastFaceFrame.submat(sourceFaceROI), backgroundFrame.submat(sourceFaceROI), new Mat());
+                    Mat backgroundMask = getBackgroundMask(lastFaceFrame.submat(sourceFaceROI), backgroundFrame.submat(sourceFaceROI), new Mat());
 
-                    copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask );
+                    copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask);
                     copyMatToMat(currentFrameTemp, backgroundFrame, sourceFaceROI, sourceFaceROI, backgroundMask);
                     currentFrame = currentFrameTemp;
                 }
@@ -84,41 +84,36 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
     }
 
 
-    private Mat getBackgroundMask(Mat image, Mat background, Mat diffImage){
-        Core.absdiff(image, background , diffImage);
-        Mat foreGroundMask= Mat.zeros(diffImage.rows(),diffImage.cols(), CvType.CV_8UC1);
 
-        double dist;
-        int cnt=0;
-        for(int j=0; j<diffImage.rows(); ++j) {
+
+    private Mat getBackgroundMask(Mat image, Mat background, Mat diffImage) {
+        Core.absdiff(image, background, diffImage);
+        Mat foreGroundMask = Mat.zeros(diffImage.rows(), diffImage.cols(), CvType.CV_8UC1);
+        for (int j = 0; j < diffImage.rows(); ++j) {
             for (int i = 0; i < diffImage.cols(); ++i) {
                 double pix[] = diffImage.get(j, i);
-
-                dist = (pix[0] * pix[0] + pix[1] * pix[1] + pix[2] * pix[2]);
-                dist = Math.sqrt(dist);
-
-                if (dist < threshold) {
+                double r= pix[0];
+                double g= pix[1];
+                double b= pix[2];
+                if ( r> threshold && g >threshold && b> threshold) {
                     foreGroundMask.put(j, i, 255);
-                    cnt++;
                 }
             }
         }
-        int totPix=diffImage.rows() * diffImage.cols();
-        Log.i("Background subtraction","Num tot pix: "+totPix+". PixForeg: "+cnt);
         return foreGroundMask;
     }
 
 
-    private Rect faceDetect(Mat currentFrame){
+    private Rect faceDetect(Mat currentFrame) {
         MatOfRect faceDetections = new MatOfRect();
         mJavaDetector.detectMultiScale(currentFrame, faceDetections);
         Rect[] rects = faceDetections.toArray();
         Rect maxRect;
-        if(rects.length>0){
-            maxRect= rects[0];
-            for (int i = 1; i < rects.length ; i++) {
-                if(rects[i].area()> maxRect.area()){
-                    maxRect=rects[i];
+        if (rects.length > 0) {
+            maxRect = rects[0];
+            for (int i = 1; i < rects.length; i++) {
+                if (rects[i].area() > maxRect.area()) {
+                    maxRect = rects[i];
                 }
             }
             return maxRect;
@@ -126,22 +121,21 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
         return null;
     }
 
-    private void copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask){
-        if (destination !=null
-                && source!=null
+    private void copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask) {
+        if (destination != null
+                && source != null
                 && destinationROI.height == sourceROI.height
-                && destinationROI.width  == sourceROI.width
-                && sourceROI.width<=source.width()
-                && sourceROI.height<= source.height()
-                && destinationROI.width<=destination.width()
-                && destinationROI.height<= destination.height()
-                ){
-            Mat tempS= source.clone().submat(sourceROI);
+                && destinationROI.width == sourceROI.width
+                && sourceROI.width <= source.width()
+                && sourceROI.height <= source.height()
+                && destinationROI.width <= destination.width()
+                && destinationROI.height <= destination.height()
+                ) {
+            Mat tempS = source.clone().submat(sourceROI);
 
-            if(mask!=null){
+            if (mask != null) {
                 tempS.copyTo(destination.submat(destinationROI), mask);
-            }
-            else{
+            } else {
                 tempS.copyTo(destination.submat(destinationROI));
             }
             tempS.release();
@@ -149,9 +143,8 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
     }
 
 
-
-    public  void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale) {
-        if (frameWidth != null && frameHeight!= null) {
+    public void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale) {
+        if (frameWidth != null && frameHeight != null) {
             double bitmapWidth = frameWidth * scale;
             double bitmapHeight = frameHeight * scale;
             double borderWidth = (screenWidth - bitmapWidth) / 2;
@@ -161,9 +154,11 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
         }
     }
 
-    public synchronized Rect getDestFaceROI(int faceWidth,int faceHeight, Mat currentFrame){
-        Rect rect= new Rect(0, 0, faceWidth, faceHeight);
-        if (pointWhereToPutTheFace != null && currentFrame!=null) {
+
+
+    public synchronized Rect getDestFaceROI(int faceWidth, int faceHeight, Mat currentFrame) {
+        Rect rect = new Rect(0, 0, faceWidth, faceHeight);
+        if (pointWhereToPutTheFace != null && currentFrame != null) {
             int x0 = (int) pointWhereToPutTheFace.x;
             int y0 = (int) pointWhereToPutTheFace.y;
             int currentFrameWidth = currentFrame.cols();
@@ -187,18 +182,44 @@ public class Boia implements BackgroundMaskCalculatorThread.BackgroundMaskChange
                     int diff = yn - currentFrame.height() + 1;
                     y0 = y0 - diff;
                 }
-                rect.x=x0;
-                rect.y=y0;
+                rect.x = x0;
+                rect.y = y0;
             }
         }
         return rect;
     }
 
-   public void setThreshold(int t){
-       this.threshold=t;
-   }
+    public Rect incrementROISize(Rect roi){
+        double h=roi.height;
+        double hdiff= (h/100)*70;
+        double h2= h+  hdiff;
 
-    public int getThreshold(){
+        double w= roi.width;
+        double wdiff= (w/100)*50;
+        double w2= w + wdiff;
+
+        double x= roi.x;
+        double x2= x-(wdiff/2);
+        double y= roi.y;
+        double y2= y-(hdiff*2/3);
+
+        double xn= x2+w2;
+        double yn= y2+h2;
+
+        if(x2>0 && xn<frameWidth && y2>=0 && yn <frameHeight && w2< frameWidth && h2 < frameHeight){
+            return new Rect((int)x2,(int)y2,(int)w2,(int)h2);
+
+        }
+        else{
+            return roi;
+        }
+    }
+
+    public void setThreshold(int t) {
+        this.threshold = t;
+    }
+
+    public int getThreshold() {
         return this.threshold;
     }
 

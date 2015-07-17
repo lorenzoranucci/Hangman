@@ -1,11 +1,8 @@
 package it.ranuccipagoni.tagliatorediteste;
 
-import android.util.Log;
 
 import org.opencv.core.Mat;
 
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by Lorenzo on 16/07/2015.
@@ -23,7 +20,7 @@ public class BackgroundMaskCalculatorThread extends Thread {
     }
     @Override
     public void run() {
-        while (listener!=null && !stop){
+       /* while (listener!=null && !stop){
             if(lastReceivedFrame!=null){
                 synchronized (lastReceivedFrame){
                     Mat frame= lastReceivedFrame;
@@ -38,7 +35,7 @@ public class BackgroundMaskCalculatorThread extends Thread {
                 }
             }
             listener.onBackgroundMaskChanged(backgroundMask);
-        }
+        }*/
     }
     
     public void setLastReceivedFrame(Mat frame){

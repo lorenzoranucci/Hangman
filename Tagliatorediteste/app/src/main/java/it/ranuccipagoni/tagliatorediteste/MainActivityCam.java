@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.view.Display;
+import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -14,7 +15,6 @@ import android.widget.Toast;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
-import org.opencv.android.JavaCameraView;
 import org.opencv.core.Mat;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -26,7 +26,7 @@ import java.io.InputStream;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener {
+public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, View.OnGenericMotionListener {
 
     static {
         System.loadLibrary("opencv_java3");
@@ -52,9 +52,10 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
+            mOpenCvCameraView.setOnGenericMotionListener(this);
             SeekBar seekBar= (SeekBar) findViewById(R.id.threshold);
             seekBar.setOnSeekBarChangeListener(this);
-            seekBar.setMax(200);
+            seekBar.setMax(140);
             if (boia!=null){
                 seekBar.setProgress(boia.getThreshold());
             }
@@ -143,6 +144,22 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         return false;
     }
 
+    @Override
+    public boolean onGenericMotion(View v, MotionEvent event) {
+        if(boia!=null){
+            Display display = getWindowManager().getDefaultDisplay();
+            Point size = new Point();
+            display.getSize(size);
+            int width = size.x;
+            int height = size.y;
+            boia.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getScale());
+        }
+        return false;
+    }
+
+
+
+
     private boolean checkCameraHardware(Context context) {
         if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
             // this device has a camera
@@ -172,4 +189,7 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     public void onStopTrackingTouch(SeekBar seekBar) {
 
     }
+
+
+
 }
