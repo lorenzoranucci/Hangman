@@ -27,5 +27,19 @@
         android:text="Threshold"
         android:layout_gravity="center_horizontal|bottom" />
 
+    <ImageButton
+        android:id="@+id/captureButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/capture"
+        android:layout_gravity="right|center_vertical" />
+
+    <Button
+        android:id="@+id/backgroundButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Background"
+        android:layout_gravity="left|center_vertical" />
+
 
 </FrameLayout>

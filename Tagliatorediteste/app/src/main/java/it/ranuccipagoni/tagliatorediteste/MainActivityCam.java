@@ -2,19 +2,23 @@ package it.ranuccipagoni.tagliatorediteste;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.Display;
-import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
-import android.widget.Toast;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.android.Utils;
+import org.opencv.core.CvException;
 import org.opencv.core.Mat;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -22,11 +26,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class MainActivityCam extends Activity implements CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, View.OnGenericMotionListener {
+public class MainActivityCam extends Activity implements  CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, Button.OnClickListener {
 
     static {
         System.loadLibrary("opencv_java3");
@@ -36,6 +41,8 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
 
     private Boia boia;
+
+    private boolean isToSaveBitmap=false;
 
 
 
@@ -47,15 +54,18 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             setContentView(R.layout.main);
             mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.javaCamera);
-            mOpenCvCameraView.setMaxFrameSize(320, 240);
+            mOpenCvCameraView.setMaxFrameSize(640, 480);
             mOpenCvCameraView.enableFpsMeter();
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
-            mOpenCvCameraView.setOnGenericMotionListener(this);
             SeekBar seekBar= (SeekBar) findViewById(R.id.threshold);
             seekBar.setOnSeekBarChangeListener(this);
             seekBar.setMax(140);
+            Button buttonBg= (Button) findViewById(R.id.backgroundButton);
+            buttonBg.setOnClickListener(this);
+            ImageButton buttonCapture= (ImageButton) findViewById(R.id.captureButton);
+            buttonCapture.setOnClickListener(this);
             if (boia!=null){
                 seekBar.setProgress(boia.getThreshold());
             }
@@ -92,18 +102,16 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     public void onDestroy() {
         super.onDestroy();
         if (mOpenCvCameraView != null) {
-            mOpenCvCameraView.disableView();// disabilita la fotocamera
+            mOpenCvCameraView.disableView();
         }
-        if(boia!=null){
-            boia.finalize();
-        }
+
     }
 
     @Override
     public void onPause() {
         super.onPause();
         if (mOpenCvCameraView != null) {
-            mOpenCvCameraView.disableView();// disabilita la fotocamera
+            mOpenCvCameraView.disableView();
         }
     }
 
@@ -111,7 +119,7 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     public void onResume() {
         super.onResume();
         if (mOpenCvCameraView != null) {
-            mOpenCvCameraView.enableView();// abilita la fotocamera
+            mOpenCvCameraView.enableView();
         }
     }
 
@@ -127,7 +135,38 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return boia.decapita(inputFrame);
+        Mat mat=boia.decapitate(inputFrame);
+        if(isToSaveBitmap && isExternalStorageWritable()){
+            isToSaveBitmap=false;
+            Bitmap bmp;
+            try {
+                bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(mat, bmp);
+                File dir = getAlbumStorageDir("Boia");
+                String path =dir.getPath()+File.separator+ "boia" +System.currentTimeMillis() + ".JPG";
+                File capture= new File(path);
+                OutputStream out = null;
+                try {
+                    capture.createNewFile();
+                    out = new FileOutputStream(capture);
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                    out.flush();
+                }  catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        if (out != null) {
+                            out.close();
+                        }
+                    } catch (Exception exc) {
+                    }
+                }
+            }
+            catch (CvException e) {
+                Log.d("Exception", e.getMessage());
+            }
+        }
+        return mat;
     }
 
 
@@ -143,35 +182,6 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
         }
         return false;
     }
-
-    @Override
-    public boolean onGenericMotion(View v, MotionEvent event) {
-        if(boia!=null){
-            Display display = getWindowManager().getDefaultDisplay();
-            Point size = new Point();
-            display.getSize(size);
-            int width = size.x;
-            int height = size.y;
-            boia.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getScale());
-        }
-        return false;
-    }
-
-
-
-
-    private boolean checkCameraHardware(Context context) {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
-            // this device has a camera
-            Toast.makeText(this, "Phone has camera", Toast.LENGTH_LONG).show();
-            return true;
-        } else {
-            // no camera on this device
-            Toast.makeText(this, "Phone has no camera", Toast.LENGTH_LONG).show();
-            return false;
-        }
-    }
-
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -191,5 +201,33 @@ public class MainActivityCam extends Activity implements CvCameraViewListener2, 
     }
 
 
+    @Override
+    public void onClick(View v) {
+        if (boia != null) {
+            if (v.getId() == R.id.backgroundButton) {
+                boia.setBackground();
+            } else if (v.getId() == R.id.captureButton) {
+                isToSaveBitmap = true;
+            }
+        }
+    }
+     /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        return Environment.MEDIA_MOUNTED.equals(state);
+    }
 
+    public File getAlbumStorageDir(String albumName) {
+        // Get the directory for the user's public pictures directory.
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DCIM), albumName);
+        if (!file.mkdirs()) {
+            Log.e("CAPTURE", "Directory not created");
+        }
+        return file;
+    }
 }
+
+
+
+
