@@ -31,7 +31,7 @@ import java.io.OutputStream;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class MainActivityCam extends Activity implements  CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, Button.OnClickListener {
+public class MainActivityCam extends Activity implements  CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, View.OnClickListener {
 
     static {
         System.loadLibrary("opencv_java3");
@@ -122,6 +122,11 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.enableView();
         }
     }
+
+
+
+
+
 
     @Override
     public void onCameraViewStarted(int width, int height) {

@@ -36,7 +36,7 @@ public class Boia{
 
 
 
-    public Mat decapitate(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+    public synchronized Mat decapitate(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame = inputFrame.rgba();
         if(isToSetBackground){
             isToSetBackground=false;
@@ -48,22 +48,19 @@ public class Boia{
         Rect destFaceROI = null;
         Mat lastFaceFrame = null;
         Rect tempSourceFaceROI;
-        if ((tempSourceFaceROI = faceDetect(currentFrame)) != null) {
+        if (background != null && (tempSourceFaceROI = faceDetect(currentFrame)) != null ) {
             sourceFaceROI = tempSourceFaceROI;
             sourceFaceROI=incrementROISize(sourceFaceROI);
             destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
-            lastFaceFrame = currentFrame;
+            lastFaceFrame = currentFrame.clone();
         }
         if (lastFaceFrame != null
                 && destFaceROI != null
                 && background != null
                 ) {
-            Mat currentFrameTemp = currentFrame.clone();
-            Mat backgroundFrame = background.clone();
-            Mat backgroundMask = getBackgroundMask(lastFaceFrame.submat(sourceFaceROI), backgroundFrame.submat(sourceFaceROI), new Mat());
-            copyMatToMat(currentFrameTemp, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask);
-            copyMatToMat(currentFrameTemp, backgroundFrame, sourceFaceROI, sourceFaceROI, backgroundMask);
-            currentFrame = currentFrameTemp;
+            Mat backgroundMask = getBackgroundMask(currentFrame.submat(sourceFaceROI), background.submat(sourceFaceROI));
+            copyMatToMat(currentFrame, background, sourceFaceROI, sourceFaceROI, backgroundMask);
+            copyMatToMat(currentFrame, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask);
         }
 
         return currentFrame;
@@ -72,7 +69,8 @@ public class Boia{
 
 
 
-    private Mat getBackgroundMask(Mat image, Mat background, Mat diffImage) {
+    private Mat getBackgroundMask(Mat image, Mat background ) {
+        Mat diffImage=new Mat();
         Core.absdiff(image, background, diffImage);
         Mat foreGroundMask = Mat.zeros(diffImage.rows(), diffImage.cols(), CvType.CV_8UC1);
         double xE= image.cols()/2;
