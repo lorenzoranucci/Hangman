@@ -201,7 +201,7 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
 
     public Rect incrementROISize(Rect roi){
         double h=roi.height;
-        double hdiff= (h/100)*85;
+        double hdiff= (h/100)*90;
         double h2= h+  hdiff;
 
         double w= roi.width;
@@ -211,7 +211,7 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
         double x= roi.x;
         double x2= x-(wdiff/2);
         double y= roi.y;
-        double y2= y-(hdiff*6/7);
+        double y2= y-(hdiff*5/7);
 
 
 
