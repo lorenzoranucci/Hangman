@@ -1,6 +1,5 @@
 package it.ranuccipagoni.tagliatorediteste;
 
-import android.util.Log;
 import android.view.MotionEvent;
 
 import org.opencv.android.CameraBridgeViewBase;
@@ -14,8 +13,6 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by Lorenzo on 01/07/2015.
@@ -87,10 +84,10 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
 
     private Mat getBackgroundMask(Mat image, Mat background ) {
         Size s=image.size();
-        double iRows=(image.rows()/100)*quality;
-        double iCols=(image.cols()/100)*quality;
-        double bRows=(background.rows()/100)*quality;
-        double bCols=(background.cols()/100)*quality;
+        double iRows=((double)image.rows()/100)*quality;
+        double iCols=((double)image.cols()/100)*quality;
+        double bRows=((double)background.rows()/100)*quality;
+        double bCols=((double)background.cols()/100)*quality;
         Mat imageNew=new Mat((int)iRows,(int)iCols,image.type());
         Mat backgroundNew=new Mat((int)bRows,(int)bCols,background.type());
         Imgproc.resize(image,imageNew,new Size(iRows,iCols));
