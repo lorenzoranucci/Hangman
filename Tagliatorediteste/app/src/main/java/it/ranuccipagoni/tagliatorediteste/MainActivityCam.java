@@ -43,6 +43,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     private Boia boia;
 
     private boolean isToSaveBitmap=false;
+    private int mCameraId = 0;
 
 
 
@@ -55,17 +56,21 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             setContentView(R.layout.main);
             mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.javaCamera);
             mOpenCvCameraView.setMaxFrameSize(640, 480);
+            mOpenCvCameraView.setCameraIndex(mCameraId);
             mOpenCvCameraView.enableFpsMeter();
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
+            //mOpenCvCameraView.setCameraIndex();
             SeekBar seekBar= (SeekBar) findViewById(R.id.threshold);
             seekBar.setOnSeekBarChangeListener(this);
             seekBar.setMax(140);
-            Button buttonBg= (Button) findViewById(R.id.backgroundButton);
+            ImageButton buttonBg= (ImageButton) findViewById(R.id.backgroundButton);
             buttonBg.setOnClickListener(this);
             ImageButton buttonCapture= (ImageButton) findViewById(R.id.captureButton);
             buttonCapture.setOnClickListener(this);
+            ImageButton changeCamera= (ImageButton) findViewById(R.id.changeCamera);
+            changeCamera.setOnClickListener(this);
             if (boia!=null){
                 seekBar.setProgress(boia.getThreshold());
             }
@@ -104,6 +109,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
         }
+        if(boia!=null){
+            boia.stopThread();
+        }
 
     }
 
@@ -112,6 +120,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         super.onPause();
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
+        }
+        if(boia!=null){
+            boia.stopThread();
         }
     }
 
@@ -213,6 +224,8 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
                 boia.setBackground();
             } else if (v.getId() == R.id.captureButton) {
                 isToSaveBitmap = true;
+            } else if (v.getId() == R.id.changeCamera) {
+                swapCamera();
             }
         }
     }
@@ -230,6 +243,12 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             Log.e("CAPTURE", "Directory not created");
         }
         return file;
+    }
+    private void swapCamera() {
+        mCameraId = mCameraId^1; //bitwise not operation to flip 1 to 0 and vice versa
+        mOpenCvCameraView.disableView();
+        mOpenCvCameraView.setCameraIndex(mCameraId);
+        mOpenCvCameraView.enableView();
     }
 }
 

@@ -18,7 +18,8 @@ import java.util.List;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class Boia{
+public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
+    private final int BACKGROUND_SKIPPED_FRAME=10;
     private final CascadeClassifier mJavaDetector;
 
     private Integer frameWidth;
@@ -29,11 +30,17 @@ public class Boia{
     private int threshold = 70;
 
     private boolean isToSetBackground=false;
+    BackgroundUpdaterThread backgroundThread;
+
+    int backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME;
 
     public Boia(CascadeClassifier mJavaDetector) {
         this.mJavaDetector = mJavaDetector;
+        this.backgroundThread=new BackgroundUpdaterThread();
+        this.backgroundThread.setListener(this);
+        this.backgroundThread.setPriority(Thread.MIN_PRIORITY);
+        backgroundThread.start();
     }
-
 
 
     public synchronized Mat decapitate(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
@@ -41,6 +48,7 @@ public class Boia{
         if(isToSetBackground){
             isToSetBackground=false;
             background=currentFrame.clone();
+            backgroundThread.setBackground(background);
         }
         frameWidth = currentFrame.width();
         frameHeight = currentFrame.height();
@@ -48,21 +56,26 @@ public class Boia{
         Rect destFaceROI = null;
         Mat lastFaceFrame = null;
         Rect tempSourceFaceROI;
-        if (background != null && (tempSourceFaceROI = faceDetect(currentFrame)) != null ) {
-            sourceFaceROI = tempSourceFaceROI;
-            sourceFaceROI=incrementROISize(sourceFaceROI);
-            destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
-            lastFaceFrame = currentFrame.clone();
-        }
-        if (lastFaceFrame != null
-                && destFaceROI != null
-                && background != null
-                ) {
-            Mat backgroundMask = getBackgroundMask(currentFrame.submat(sourceFaceROI), background.submat(sourceFaceROI));
-            copyMatToMat(currentFrame, background, sourceFaceROI, sourceFaceROI, backgroundMask);
-            copyMatToMat(currentFrame, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask);
-        }
+        if(background!=null){
+            backgroundUpdateCountdown--;
+            if(backgroundUpdateCountdown==0){
+                backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME;
+                backgroundThread.setCurrentFrame(currentFrame);
+            }
+            if((tempSourceFaceROI = faceDetect(currentFrame)) != null ){
+                sourceFaceROI = tempSourceFaceROI;
+                sourceFaceROI=incrementROISize(sourceFaceROI);
+                destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
+                lastFaceFrame = currentFrame.clone();
+            }
+            if (lastFaceFrame != null
+                    && destFaceROI != null){
+                Mat backgroundMask = getBackgroundMask(currentFrame.submat(sourceFaceROI), background.submat(sourceFaceROI));
+                copyMatToMat(currentFrame, background, sourceFaceROI, sourceFaceROI, backgroundMask);
+                copyMatToMat(currentFrame, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask);
 
+            }
+        }
         return currentFrame;
     }
 
@@ -224,6 +237,11 @@ public class Boia{
         return this.threshold;
     }
 
+    @Override
+    public void onBackgroundUpdated(Mat backgroundFrame) {
+        background=backgroundFrame.clone();
+    }
+
     private class Ellipse{
         Point center;
         double semiMajorAxis;
@@ -244,6 +262,11 @@ public class Boia{
 
     public void setBackground(){
         this.isToSetBackground=true;
+    }
+
+
+    public void stopThread(){
+        backgroundThread.stopThread();
     }
 
 
