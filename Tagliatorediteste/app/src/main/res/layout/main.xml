@@ -19,21 +19,6 @@
         />
 
 
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="20dp"
-        android:text="Threshold"
-        android:layout_gravity="center_horizontal|bottom" />
-
-    <ImageButton
-        android:id="@+id/changeCamera"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:background="@drawable/changecamera"
-        android:layout_gravity="left|top" />
-
     <ImageButton
         android:id="@+id/captureButton"
         android:layout_width="50dp"
@@ -47,6 +32,36 @@
         android:layout_height="50dp"
         android:background="@drawable/background"
         android:layout_gravity="right|bottom" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:text="Threshold"
+        android:layout_gravity="center_horizontal|bottom" />
+
+    <SeekBar
+        android:id="@+id/quality"
+        android:layout_width="500px"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|top"
+
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20dp"
+        android:text="Quality"
+        android:labelFor="@id/quality"
+        android:layout_gravity="center_horizontal|top" />
+
+    <ImageButton
+        android:id="@+id/changeCamera"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@drawable/changecamera"
+        android:layout_gravity="left|center_vertical" />
 
 
 </FrameLayout>

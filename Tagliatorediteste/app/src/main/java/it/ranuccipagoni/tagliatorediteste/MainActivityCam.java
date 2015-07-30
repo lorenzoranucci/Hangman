@@ -62,9 +62,12 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
             //mOpenCvCameraView.setCameraIndex();
-            SeekBar seekBar= (SeekBar) findViewById(R.id.threshold);
-            seekBar.setOnSeekBarChangeListener(this);
-            seekBar.setMax(140);
+            SeekBar seekBarT= (SeekBar) findViewById(R.id.threshold);
+            seekBarT.setOnSeekBarChangeListener(this);
+            seekBarT.setMax(46);
+            SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
+            seekBarQ.setOnSeekBarChangeListener(this);
+            seekBarQ.setMax(90);
             ImageButton buttonBg= (ImageButton) findViewById(R.id.backgroundButton);
             buttonBg.setOnClickListener(this);
             ImageButton buttonCapture= (ImageButton) findViewById(R.id.captureButton);
@@ -72,7 +75,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             ImageButton changeCamera= (ImageButton) findViewById(R.id.changeCamera);
             changeCamera.setOnClickListener(this);
             if (boia!=null){
-                seekBar.setProgress(boia.getThreshold());
+                seekBarT.setProgress(boia.getThreshold());
             }
         }
         catch (IOException i){
@@ -121,9 +124,6 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
         }
-        if(boia!=null){
-            boia.stopThread();
-        }
     }
 
     @Override
@@ -131,6 +131,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         super.onResume();
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.enableView();
+        }
+        if(boia!=null){
+            boia.startThread();
         }
     }
 
@@ -202,7 +205,13 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         if(boia!=null){
-            boia.setThreshold(progress);
+            if(seekBar.getId()==R.id.quality){
+                boia.setQuality(progress);
+            }
+            else  if(seekBar.getId()==R.id.threshold){
+                boia.setThreshold(progress);
+            }
+
         }
     }
 
@@ -247,6 +256,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     private void swapCamera() {
         mCameraId = mCameraId^1; //bitwise not operation to flip 1 to 0 and vice versa
         mOpenCvCameraView.disableView();
+        if (boia!=null){
+            boia.setNullBackground();
+        }
         mOpenCvCameraView.setCameraIndex(mCameraId);
         mOpenCvCameraView.enableView();
     }

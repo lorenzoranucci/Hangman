@@ -10,6 +10,8 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
 import java.util.ArrayList;
@@ -19,7 +21,7 @@ import java.util.List;
  * Created by Lorenzo on 01/07/2015.
  */
 public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
-    private final int BACKGROUND_SKIPPED_FRAME=10;
+    private final int BACKGROUND_SKIPPED_FRAME=200;
     private final CascadeClassifier mJavaDetector;
 
     private Integer frameWidth;
@@ -27,7 +29,8 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
 
     private Point pointWhereToPutTheFace = new Point(0, 0);
     private Mat background;
-    private int threshold = 70;
+    private int threshold = 60;
+    private int quality=10;
 
     private boolean isToSetBackground=false;
     BackgroundUpdaterThread backgroundThread;
@@ -38,7 +41,7 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
         this.mJavaDetector = mJavaDetector;
         this.backgroundThread=new BackgroundUpdaterThread();
         this.backgroundThread.setListener(this);
-        this.backgroundThread.setPriority(Thread.MIN_PRIORITY);
+        this.backgroundThread.setPriority(Thread.MAX_PRIORITY);
         backgroundThread.start();
     }
 
@@ -59,7 +62,7 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
         if(background!=null){
             backgroundUpdateCountdown--;
             if(backgroundUpdateCountdown==0){
-                backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME;
+                backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME*(100-quality);
                 backgroundThread.setCurrentFrame(currentFrame);
             }
             if((tempSourceFaceROI = faceDetect(currentFrame)) != null ){
@@ -83,11 +86,20 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
 
 
     private Mat getBackgroundMask(Mat image, Mat background ) {
+        Size s=image.size();
+        double iRows=(image.rows()/100)*quality;
+        double iCols=(image.cols()/100)*quality;
+        double bRows=(background.rows()/100)*quality;
+        double bCols=(background.cols()/100)*quality;
+        Mat imageNew=new Mat((int)iRows,(int)iCols,image.type());
+        Mat backgroundNew=new Mat((int)bRows,(int)bCols,background.type());
+        Imgproc.resize(image,imageNew,new Size(iRows,iCols));
+        Imgproc.resize(background,backgroundNew,new Size(bRows,bCols));
         Mat diffImage=new Mat();
-        Core.absdiff(image, background, diffImage);
+        Core.absdiff(imageNew, backgroundNew, diffImage);
         Mat foreGroundMask = Mat.zeros(diffImage.rows(), diffImage.cols(), CvType.CV_8UC1);
-        double xE= image.cols()/2;
-        double yE= image.rows()/2;
+        double xE= imageNew.cols()/2;
+        double yE= imageNew.rows()/2;
         Ellipse ellipse= new Ellipse(xE,yE,xE,yE);
         for (int j = 0; j < diffImage.rows(); ++j) {
             for (int i = 0; i < diffImage.cols(); ++i) {
@@ -99,7 +111,9 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
                 }
             }
         }
-        return foreGroundMask;
+        Mat f2=new Mat(s,image.type());
+        Imgproc.resize(foreGroundMask,f2,s);
+        return f2;
     }
 
 
@@ -190,7 +204,7 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
 
     public Rect incrementROISize(Rect roi){
         double h=roi.height;
-        double hdiff= (h/100)*75;
+        double hdiff= (h/100)*85;
         double h2= h+  hdiff;
 
         double w= roi.width;
@@ -230,7 +244,10 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
     }
 
     public void setThreshold(int t) {
-        this.threshold = t;
+        this.threshold = t*2;
+    }
+    public void setQuality(int t) {
+        this.quality = t+10;
     }
 
     public int getThreshold() {
@@ -264,9 +281,19 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
         this.isToSetBackground=true;
     }
 
+    public void setNullBackground(){
+        this.background=null;
+    }
+
 
     public void stopThread(){
         backgroundThread.stopThread();
+    }
+    public void startThread(){
+        if(!backgroundThread.isAlive()){
+            backgroundThread.start();
+        }
+
     }
 
 

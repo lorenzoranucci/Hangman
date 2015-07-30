@@ -23,7 +23,7 @@ public class BackgroundUpdaterThread extends Thread {
     private final int LIST_SIZE = 3;
     private BackgroundUpdaterListener listener;
     private Mat background;
-    private double threshold = 20;
+    private double threshold = 70;
     private boolean stop = false;
     private boolean isThereANewFrame = false;
 
@@ -32,10 +32,12 @@ public class BackgroundUpdaterThread extends Thread {
 
     public void stopThread() {
         this.stop = true;
+        listener=null;
     }
 
     @Override
     public void run() {
+        this.stop = false;
         while (!stop) {
             if (background != null && isThereANewFrame) {
                 if (listener != null && multipleDifference()) {
@@ -43,7 +45,6 @@ public class BackgroundUpdaterThread extends Thread {
                 }
             }
         }
-        this.stop = false;
     }
 
     private boolean multipleDifference() {
