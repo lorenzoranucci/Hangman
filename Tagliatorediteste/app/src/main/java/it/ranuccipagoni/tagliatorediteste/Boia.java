@@ -17,7 +17,7 @@ import org.opencv.objdetect.CascadeClassifier;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
+public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener, TimerThread.TimerThreadListener{
     private final int BACKGROUND_SKIPPED_FRAME=200;
     private final CascadeClassifier mJavaDetector;
 
@@ -30,12 +30,17 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
     private int quality=10;
 
     private boolean isToSetBackground=false;
+    private boolean isToDeliverCurrentFrame=false;
     BackgroundUpdaterThread backgroundThread;
+    TimerThread timerThread;
 
     int backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME;
 
     public Boia(CascadeClassifier mJavaDetector) {
         this.mJavaDetector = mJavaDetector;
+        timerThread=new TimerThread();
+        timerThread.setListener(this);
+        timerThread.start();
         this.backgroundThread=new BackgroundUpdaterThread();
         this.backgroundThread.setListener(this);
         this.backgroundThread.setPriority(Thread.MAX_PRIORITY);
@@ -57,9 +62,8 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
         Mat lastFaceFrame = null;
         Rect tempSourceFaceROI;
         if(background!=null){
-            backgroundUpdateCountdown--;
-            if(backgroundUpdateCountdown==0){
-                backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME*(100-quality);
+            if(isToDeliverCurrentFrame){
+                isToDeliverCurrentFrame=false;
                 backgroundThread.setCurrentFrame(currentFrame);
             }
             if((tempSourceFaceROI = faceDetect(currentFrame)) != null ){
@@ -256,6 +260,11 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
         background=backgroundFrame.clone();
     }
 
+    @Override
+    public void onTimerOn() {
+        isToDeliverCurrentFrame=true;
+    }
+
     private class Ellipse{
         Point center;
         double semiMajorAxis;
@@ -285,8 +294,12 @@ public class Boia implements BackgroundUpdaterThread.BackgroundUpdaterListener{
 
     public void stopThread(){
         backgroundThread.stopThread();
+        timerThread.stopThread();
     }
     public void startThread(){
+        if(!timerThread.isAlive()){
+            timerThread.start();
+        }
         if(!backgroundThread.isAlive()){
             backgroundThread.start();
         }
