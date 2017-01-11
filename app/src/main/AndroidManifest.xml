@@ -14,4 +14,9 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.front.autofocus" android:required="false"/>
+    <receiver android:name=".BatteryLevelReceiver">
+        <intent-filter>
+            <action android:name="android.intent.action.BATTERY_LOW"/>
+        </intent-filter>
+    </receiver>
 </manifest>

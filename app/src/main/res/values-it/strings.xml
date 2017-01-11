@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Tagliatore di\n teste</string>
+    <string name="action_settings">Impostazioni</string>
+    <string name="lower_battery_string">Batteria quasi scarica</string>
+    <string name="saved_photo">Immagine salvata nella cartella Boia!</string>
+    <string name="cascade_error">Errore nella lettura del file cascade</string>
+</resources>
