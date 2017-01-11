@@ -17,7 +17,7 @@ import org.opencv.objdetect.CascadeClassifier;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListener, TimerThread.TimerThreadListener{
+public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListener, BackgroundUpdaterTimerThread.TimerThreadListener{
     private final int BACKGROUND_SKIPPED_FRAME=200;
     private final CascadeClassifier mJavaDetector;
 
@@ -31,20 +31,20 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
 
     private boolean isToSetBackground=false;
     private boolean isToDeliverCurrentFrame=false;
-    BackgroundUpdaterThread backgroundThread;
-    TimerThread timerThread;
+    BackgroundUpdaterThread backgroundUpdaterThread;
+    BackgroundUpdaterTimerThread backgroundUpdaterTimerThread;
 
     int backgroundUpdateCountdown=BACKGROUND_SKIPPED_FRAME;
 
     public Hangman(CascadeClassifier mJavaDetector) {
         this.mJavaDetector = mJavaDetector;
-        timerThread=new TimerThread();
-        timerThread.setListener(this);
-        timerThread.start();
-        this.backgroundThread=new BackgroundUpdaterThread();
-        this.backgroundThread.setListener(this);
-        this.backgroundThread.setPriority(Thread.MAX_PRIORITY);
-        backgroundThread.start();
+        backgroundUpdaterTimerThread =new BackgroundUpdaterTimerThread();
+        backgroundUpdaterTimerThread.setListener(this);
+        backgroundUpdaterTimerThread.start();
+        this.backgroundUpdaterThread=new BackgroundUpdaterThread();
+        this.backgroundUpdaterThread.setListener(this);
+        this.backgroundUpdaterThread.setPriority(Thread.MAX_PRIORITY);
+        backgroundUpdaterThread.start();
     }
 
 
@@ -53,7 +53,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
         if(isToSetBackground){
             isToSetBackground=false;
             background=currentFrame.clone();
-            backgroundThread.setBackground(background);
+            backgroundUpdaterThread.setBackground(background);
         }
         frameWidth = currentFrame.width();
         frameHeight = currentFrame.height();
@@ -64,7 +64,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
         if(background!=null){
             if(isToDeliverCurrentFrame){
                 isToDeliverCurrentFrame=false;
-                backgroundThread.setCurrentFrame(currentFrame);
+                backgroundUpdaterThread.setCurrentFrame(currentFrame);
             }
             if((tempSourceFaceROI = faceDetect(currentFrame)) != null ){
                 sourceFaceROI = tempSourceFaceROI;
@@ -293,15 +293,15 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
 
 
     public void stopThread(){
-        backgroundThread.stopThread();
-        timerThread.stopThread();
+        backgroundUpdaterThread.stopThread();
+        backgroundUpdaterTimerThread.stopThread();
     }
     public void startThread(){
-        if(!timerThread.isAlive()){
-            timerThread.start();
+        if(!backgroundUpdaterTimerThread.isAlive()){
+            backgroundUpdaterTimerThread.start();
         }
-        if(!backgroundThread.isAlive()){
-            backgroundThread.start();
+        if(!backgroundUpdaterThread.isAlive()){
+            backgroundUpdaterThread.start();
         }
 
     }

@@ -3,7 +3,7 @@ package it.lorenzoranucci.hangman;
 /**
  * Created by Lorenzo on 31/07/2015.
  */
-public class TimerThread extends Thread {
+public class BackgroundUpdaterTimerThread extends Thread {
     public interface TimerThreadListener {
         void onTimerOn();
     }
