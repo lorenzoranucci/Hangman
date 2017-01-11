@@ -1,8 +1,10 @@
 package it.lorenzoranucci.hangman;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -10,7 +12,6 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 
@@ -39,12 +40,15 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     private CameraBridgeViewBase mOpenCvCameraView;
 
 
-    private Hangman Hangman;
+    private Hangman hangman;
 
     private boolean isToSaveBitmap=false;
     private int mCameraId = 0;
 
+    private boolean intentImageCapture;
 
+
+    //of activity
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,10 +64,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
-            //mOpenCvCameraView.setCameraIndex();
             SeekBar seekBarT= (SeekBar) findViewById(R.id.threshold);
             seekBarT.setOnSeekBarChangeListener(this);
-            seekBarT.setMax(46);
+            seekBarT.setMax(45);
             SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
             seekBarQ.setOnSeekBarChangeListener(this);
             seekBarQ.setMax(90);
@@ -73,9 +76,17 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             buttonCapture.setOnClickListener(this);
             ImageButton changeCamera= (ImageButton) findViewById(R.id.changeCamera);
             changeCamera.setOnClickListener(this);
-            if (Hangman!=null){
-                seekBarT.setProgress(Hangman.getThreshold());
+            if (hangman !=null){
+                seekBarT.setProgress(hangman.getThreshold());
             }
+
+            // Get the intent that started this activity, to put this app in photo chooser
+            Intent intent = getIntent();
+            intentImageCapture=false;
+            if(intent.getAction().equals("android.media.action.IMAGE_CAPTURE"))
+                intentImageCapture=true;
+
+
         }
         catch (IOException i){
             i.printStackTrace();
@@ -97,11 +108,8 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         is.close();
         os.close();
         CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-        this.Hangman=new Hangman(mJavaDetector);
+        this.hangman =new Hangman(mJavaDetector);
     }
-
-
-
 
 
 
@@ -111,8 +119,8 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
         }
-        if(Hangman!=null){
-            Hangman.stopThread();
+        if(hangman !=null){
+            hangman.stopThread();
         }
 
     }
@@ -131,8 +139,8 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.enableView();
         }
-        if(Hangman!=null){
-            Hangman.startThread();
+        if(hangman !=null){
+            hangman.startThread();
         }
     }
 
@@ -153,15 +161,15 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        Mat mat=Hangman.decapitate(inputFrame);
+        Mat mat= hangman.decapitate(inputFrame);
         if(isToSaveBitmap && isExternalStorageWritable()){
             isToSaveBitmap=false;
             Bitmap bmp;
             try {
                 bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
                 Utils.matToBitmap(mat, bmp);
-                File dir = getAlbumStorageDir("Hangman");
-                String path =dir.getPath()+File.separator+ "Hangman" +System.currentTimeMillis() + ".JPG";
+                File dir = getAlbumStorageDir("hangman");
+                String path =dir.getPath()+File.separator+ "hangman" +System.currentTimeMillis() + ".JPG";
                 File capture= new File(path);
                 OutputStream out = null;
                 try {
@@ -169,15 +177,22 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
                     out = new FileOutputStream(capture);
                     bmp.compress(Bitmap.CompressFormat.JPEG, 90, out);
                     out.flush();
+                    if(intentImageCapture){
+                        try {
+                            if (out != null) {
+                                out.close();
+                            }
+                        } catch (Exception exc) {
+                        }
+                        Intent result = new Intent("com.example.RESULT_ACTION");
+                        result.setData(Uri.fromFile(capture));
+                        result.putExtra(Intent.EXTRA_STREAM,capture);
+                        result.setType("image/jpg");
+                        setResult(Activity.RESULT_OK, result);
+                        finish();
+                    }
                 }  catch (IOException e) {
                     e.printStackTrace();
-                } finally {
-                    try {
-                        if (out != null) {
-                            out.close();
-                        }
-                    } catch (Exception exc) {
-                    }
                 }
             }
             catch (CvException e) {
@@ -188,27 +203,29 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     }
 
 
+
+    //of view
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        if(Hangman!=null){
+        if(hangman !=null){
             Display display = getWindowManager().getDefaultDisplay();
             Point size = new Point();
             display.getSize(size);
             int width = size.x;
             int height = size.y;
-            Hangman.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getmScale());
+            hangman.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getmScale());
         }
         return false;
     }
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        if(Hangman!=null){
+        if(hangman !=null){
             if(seekBar.getId()==R.id.quality){
-                Hangman.setQuality(progress);
+                hangman.setQuality(progress);
             }
             else  if(seekBar.getId()==R.id.threshold){
-                Hangman.setThreshold(progress);
+                hangman.setThreshold(progress);
             }
 
         }
@@ -227,9 +244,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
 
     @Override
     public void onClick(View v) {
-        if (Hangman != null) {
+        if (hangman != null) {
             if (v.getId() == R.id.backgroundButton) {
-                Hangman.setBackground();
+                hangman.setBackground();
             } else if (v.getId() == R.id.captureButton) {
                 isToSaveBitmap = true;
             } else if (v.getId() == R.id.changeCamera) {
@@ -237,6 +254,8 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             }
         }
     }
+
+
     /* Checks if external storage is available for read and write */
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
@@ -255,10 +274,13 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     private void swapCamera() {
         mCameraId = mCameraId^1; //bitwise not operation to flip 1 to 0 and vice versa
         mOpenCvCameraView.disableView();
-        if (Hangman!=null){
-            Hangman.setNullBackground();
+        if (hangman !=null){
+            hangman.setNullBackground();
         }
         mOpenCvCameraView.setCameraIndex(mCameraId);
         mOpenCvCameraView.enableView();
     }
 }
+
+
+
