@@ -251,7 +251,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             display.getSize(size);
             int width = size.x;
             int height = size.y;
-            hangman.setPointWhereToPutTheFace(event, width, height, mOpenCvCameraView.getmScale());
+            hangman.setFaceDestination(event, width, height, mOpenCvCameraView.getmScale());
         }
         return false;
     }

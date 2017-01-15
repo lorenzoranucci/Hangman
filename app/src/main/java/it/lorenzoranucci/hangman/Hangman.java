@@ -27,7 +27,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
     private Integer frameWidth;
     private Integer frameHeight;
 
-    private Point pointWhereToPutTheFace = new Point(0, 0);
+    private Point faceDestination = new Point(0, 0);
     private Mat background;
     private int threshold = 60;
     private int quality=10;
@@ -74,9 +74,8 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
             /*check if is there a face in the current frame*/
             Rect tempSourceFaceROI;
             if(( tempSourceFaceROI = faceDetect(currentFrame)) != null ){
-                /*compute, increment, and position the region of interest of the face*/
+                /*compute and position the region of interest of the face*/
                 sourceFaceROI = tempSourceFaceROI;
-                sourceFaceROI=incrementROISize(sourceFaceROI);
                 destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
                 lastFaceFrame = currentFrame.clone();
             }
@@ -135,6 +134,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
     }
 
 
+    /*detect face position*/
     private Rect faceDetect(Mat currentFrame) {
         MatOfRect faceDetections = new MatOfRect();
         mJavaDetector.detectMultiScale(currentFrame, faceDetections);
@@ -147,77 +147,9 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
                     maxRect = rects[i];
                 }
             }
-            return maxRect;
+            return incrementROISize(maxRect);
         }
         return null;
-    }
-
-    private void copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask) {
-        if (destination != null
-                && source != null
-                && destinationROI.height == sourceROI.height
-                && destinationROI.width == sourceROI.width
-                && sourceROI.width <= source.width()
-                && sourceROI.height <= source.height()
-                && destinationROI.width <= destination.width()
-                && destinationROI.height <= destination.height()
-                ) {
-            Mat tempS = source.clone().submat(sourceROI);
-
-            if (mask != null) {
-                tempS.copyTo(destination.submat(destinationROI), mask);
-            } else {
-                tempS.copyTo(destination.submat(destinationROI));
-            }
-            tempS.release();
-        }
-    }
-
-
-    public void setPointWhereToPutTheFace(MotionEvent event, int screenWidth, int screenHeight, float scale) {
-        if (frameWidth != null && frameHeight != null) {
-            double bitmapWidth = frameWidth * scale;
-            double bitmapHeight = frameHeight * scale;
-            double borderWidth = (screenWidth - bitmapWidth) / 2;
-            double borderHeight = (screenHeight - bitmapHeight) / 2;
-            pointWhereToPutTheFace.x = (event.getX() - borderWidth) / scale;
-            pointWhereToPutTheFace.y = (event.getY() - borderHeight) / scale;
-        }
-    }
-
-
-
-    public synchronized Rect getDestFaceROI(int faceWidth, int faceHeight, Mat currentFrame) {
-        Rect rect = new Rect(0, 0, faceWidth, faceHeight);
-        if (pointWhereToPutTheFace != null && currentFrame != null) {
-            int x0 = (int) pointWhereToPutTheFace.x;
-            int y0 = (int) pointWhereToPutTheFace.y;
-            int currentFrameWidth = currentFrame.cols();
-            int currentFrameHeight = currentFrame.rows();
-            if (currentFrameWidth > faceWidth && currentFrameHeight > faceHeight) {
-                x0 = x0 - (faceWidth / 2);
-                y0 = y0 - (faceHeight / 2);
-
-                int xn = x0 + faceWidth;
-                int yn = y0 + faceHeight;
-
-                if (x0 < 0) {
-                    x0 = 0;
-                } else if (xn > currentFrame.width()) {
-                    int diff = xn - currentFrame.width() + 1;
-                    x0 = x0 - diff;
-                }
-                if (y0 < 0) {
-                    y0 = 0;
-                } else if (yn > currentFrame.height()) {
-                    int diff = yn - currentFrame.height() + 1;
-                    y0 = y0 - diff;
-                }
-                rect.x = x0;
-                rect.y = y0;
-            }
-        }
-        return rect;
     }
 
     /*resize the RegionOfInterest dimensions*/
@@ -262,22 +194,114 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
 
     }
 
+
+    /*
+    print sourceROI of source into destinationROI of destination*/
+    private void copyMatToMat(Mat destination, Mat source, Rect destinationROI, Rect sourceROI, Mat mask) {
+        if (destination != null
+                && source != null
+                && destinationROI.height == sourceROI.height
+                && destinationROI.width == sourceROI.width
+                && sourceROI.width <= source.width()
+                && sourceROI.height <= source.height()
+                && destinationROI.width <= destination.width()
+                && destinationROI.height <= destination.height()
+                ) {
+            Mat tempS = source.clone().submat(sourceROI);
+
+            if (mask != null) {
+                tempS.copyTo(destination.submat(destinationROI), mask);
+            } else {
+                tempS.copyTo(destination.submat(destinationROI));
+            }
+            tempS.release();
+        }
+    }
+
+    /**
+     * Map the point of the user touch with the equivalent point in the image
+     * @param event
+     * @param screenWidth
+     * @param screenHeight
+     * @param scale
+     */
+    public void setFaceDestination(MotionEvent event, int screenWidth, int screenHeight, float scale) {
+        if (frameWidth != null && frameHeight != null) {
+            double bitmapWidth = frameWidth * scale;
+            double bitmapHeight = frameHeight * scale;
+            double borderWidth = (screenWidth - bitmapWidth) / 2;
+            double borderHeight = (screenHeight - bitmapHeight) / 2;
+            faceDestination.x = (event.getX() - borderWidth) / scale;
+            faceDestination.y = (event.getY() - borderHeight) / scale;
+        }
+    }
+
+
+    /**
+     * Return the region of interest of the face destination
+     * @param faceWidth
+     * @param faceHeight
+     * @param currentFrame
+     * @return the region of interest of the face destination
+     */
+    public synchronized Rect getDestFaceROI(int faceWidth, int faceHeight, Mat currentFrame) {
+        Rect rect = new Rect(0, 0, faceWidth, faceHeight);
+        if (faceDestination != null && currentFrame != null) {
+            int x0 = (int) faceDestination.x;
+            int y0 = (int) faceDestination.y;
+            int currentFrameWidth = currentFrame.cols();
+            int currentFrameHeight = currentFrame.rows();
+            if (currentFrameWidth > faceWidth && currentFrameHeight > faceHeight) {
+                x0 = x0 - (faceWidth / 2);
+                y0 = y0 - (faceHeight / 2);
+
+                int xn = x0 + faceWidth;
+                int yn = y0 + faceHeight;
+
+                if (x0 < 0) {
+                    x0 = 0;
+                } else if (xn > currentFrame.width()) {
+                    int diff = xn - currentFrame.width() + 1;
+                    x0 = x0 - diff;
+                }
+                if (y0 < 0) {
+                    y0 = 0;
+                } else if (yn > currentFrame.height()) {
+                    int diff = yn - currentFrame.height() + 1;
+                    y0 = y0 - diff;
+                }
+                rect.x = x0;
+                rect.y = y0;
+            }
+        }
+        return rect;
+    }
+
+
+
     public void setThreshold(int t) {
         this.threshold = t*2;
     }
-    public void setQuality(int t) {
-        this.quality = t+10;
+    public void setQuality(int q) {
+        this.quality = q+10;
     }
 
     public int getThreshold() {
         return this.threshold;
     }
 
+    /**
+     * Callback for updated background retrieving
+     * @param backgroundFrame The updated background
+     */
     @Override
     public void onBackgroundUpdated(Mat backgroundFrame) {
         background=backgroundFrame.clone();
     }
 
+    /**
+     * Callback for timer backup. Used for background update delay
+     */
     @Override
     public void onTimerOn() {
         isCurrentFrameToDeliver =true;
