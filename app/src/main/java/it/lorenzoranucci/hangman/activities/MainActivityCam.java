@@ -1,7 +1,6 @@
 package it.lorenzoranucci.hangman.activities;
 import android.app.Activity;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Point;
@@ -95,7 +94,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             changeCamera.setOnClickListener(this);
             seekBarT.setProgress(hangman.getThreshold());
 
-            // Get the intent that started this activity, to put this app in photo chooser
+            /*check if app is launched with intent image capture*/
             Intent intent = getIntent();
             intentImageCapture=false;
             if(intent.getAction().equals("android.media.action.IMAGE_CAPTURE"))
@@ -142,7 +141,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.disableView();
         }
         if(hangman !=null){
-            hangman.stopThread();
+            hangman.stopThreads();
         }
 
     }
@@ -162,7 +161,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.enableView();
         }
         if(hangman !=null){
-            hangman.startThread();
+            hangman.startThreads();
         }
     }
 
@@ -213,7 +212,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
                     values.put(MediaStore.MediaColumns.DATA, path);
                     getBaseContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 
-
+                    /*if app was called with intent image capture */
                     if(intentImageCapture){
                         Intent result = new Intent("com.example.RESULT_ACTION");
                         result.setData(Uri.fromFile(capture));
@@ -235,6 +234,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             }
             catch (CvException e) {
                 Log.e("Exception", e.getMessage());
+                e.printStackTrace();
             }
         }
         return mat;
@@ -242,7 +242,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
 
 
 
-    //of view
+    /*call back for camera view touch event*/
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         if(hangman !=null){
@@ -256,6 +256,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         return false;
     }
 
+    /*call back for seek bars interactions*/
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         if(hangman !=null){
@@ -280,6 +281,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     }
 
 
+    /*call back for buttons touch interactions*/
     @Override
     public void onClick(View v) {
         if (hangman != null) {
@@ -304,7 +306,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         // Get the directory for the user's public pictures directory.
         File file = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DCIM), albumName);
-        if (!file.mkdirs()) {
+        if (!file.exists() && !file.mkdirs()) {
             Log.e("CAPTURE", "Directory not created");
         }
         return file;

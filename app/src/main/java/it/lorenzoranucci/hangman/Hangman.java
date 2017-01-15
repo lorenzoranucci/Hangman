@@ -33,7 +33,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
     private int quality=10;
 
     private boolean isToSetBackground=false;
-    private boolean isToDeliverCurrentFrame=false;
+    private boolean isCurrentFrameToDeliver =false;
     BackgroundUpdaterThread backgroundUpdaterThread;
     BackgroundUpdaterTimerThread backgroundUpdaterTimerThread;
 
@@ -53,6 +53,8 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
 
     public synchronized Mat decapitate(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         Mat currentFrame = inputFrame.rgba();
+
+        /*set background frame if button is pressed*/
         if(isToSetBackground){
             isToSetBackground=false;
             background=currentFrame.clone();
@@ -63,13 +65,16 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
         Rect sourceFaceROI = null;
         Rect destFaceROI = null;
         Mat lastFaceFrame = null;
-        Rect tempSourceFaceROI;
         if(background!=null){
-            if(isToDeliverCurrentFrame){
-                isToDeliverCurrentFrame=false;
+            /*check if is the time to send the frame to background updater thread*/
+            if(isCurrentFrameToDeliver){
+                isCurrentFrameToDeliver =false;
                 backgroundUpdaterThread.setCurrentFrame(currentFrame);
             }
-            if((tempSourceFaceROI = faceDetect(currentFrame)) != null ){
+            /*check if is there a face in the current frame*/
+            Rect tempSourceFaceROI;
+            if(( tempSourceFaceROI = faceDetect(currentFrame)) != null ){
+                /*compute, increment, and position the region of interest of the face*/
                 sourceFaceROI = tempSourceFaceROI;
                 sourceFaceROI=incrementROISize(sourceFaceROI);
                 destFaceROI = getDestFaceROI(sourceFaceROI.width, sourceFaceROI.height, currentFrame);
@@ -77,9 +82,11 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
             }
             if (lastFaceFrame != null
                     && destFaceROI != null){
-                Mat backgroundMask = getBackgroundMask(currentFrame.submat(sourceFaceROI), background.submat(sourceFaceROI));
-                copyMatToMat(currentFrame, background, sourceFaceROI, sourceFaceROI, backgroundMask);
-                copyMatToMat(currentFrame, lastFaceFrame, destFaceROI, sourceFaceROI, backgroundMask);
+                Mat faceMask = getFaceMask(currentFrame.submat(sourceFaceROI), background.submat(sourceFaceROI));
+                /*replace face region of interest with the old background*/
+                copyMatToMat(currentFrame, background, sourceFaceROI, sourceFaceROI, faceMask);
+                /*replace face destination region of interest with the captured face*/
+                copyMatToMat(currentFrame, lastFaceFrame, destFaceROI, sourceFaceROI, faceMask);
 
             }
         }
@@ -88,34 +95,41 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
 
 
 
+    /*return a mask of point that belong to foreground(face)*/
+    private Mat getFaceMask(Mat currentFrameFaceROI, Mat oldBackgroundEquivalentROI ) {
+        /*resize the image due to the quality user settings*/
+        Size s=currentFrameFaceROI.size();
+        double iRows=((double)currentFrameFaceROI.rows()/100)*quality;
+        double iCols=((double)currentFrameFaceROI.cols()/100)*quality;
+        Mat imageNew=new Mat((int)iRows,(int)iCols,currentFrameFaceROI.type());
+        Mat backgroundNew=new Mat((int)iRows,(int)iCols,oldBackgroundEquivalentROI.type());
+        Imgproc.resize(currentFrameFaceROI,imageNew,new Size(iRows,iCols));
+        Imgproc.resize(oldBackgroundEquivalentROI,backgroundNew,new Size(iRows,iCols));
 
-    private Mat getBackgroundMask(Mat image, Mat background ) {
-        Size s=image.size();
-        double iRows=((double)image.rows()/100)*quality;
-        double iCols=((double)image.cols()/100)*quality;
-        double bRows=((double)background.rows()/100)*quality;
-        double bCols=((double)background.cols()/100)*quality;
-        Mat imageNew=new Mat((int)iRows,(int)iCols,image.type());
-        Mat backgroundNew=new Mat((int)bRows,(int)bCols,background.type());
-        Imgproc.resize(image,imageNew,new Size(iRows,iCols));
-        Imgproc.resize(background,backgroundNew,new Size(bRows,bCols));
+        /*compute pixel to pixel difference*/
+        /*TODO improve with local difference*/
         Mat diffImage=new Mat();
         Core.absdiff(imageNew, backgroundNew, diffImage);
+
+        /*Compute mask in a elliptical region of interest*/
         Mat foreGroundMask = Mat.zeros(diffImage.rows(), diffImage.cols(), CvType.CV_8UC1);
         double xE= imageNew.cols()/2;
         double yE= imageNew.rows()/2;
         Ellipse ellipse= new Ellipse(xE,yE,xE,yE);
         for (int j = 0; j < diffImage.rows(); ++j) {
             for (int i = 0; i < diffImage.cols(); ++i) {
-                double pix[] = diffImage.get(j, i);
-                double dist = (pix[0]*pix[0] + pix[1]*pix[1] + pix[2]*pix[2]);
-                dist = Math.sqrt(dist);
-                if ( dist> threshold && ellipse.contains(new Point(i,j))) {
-                    foreGroundMask.put(j, i, 255);//pixels to draw
+                if (ellipse.contains(new Point(i,j))){
+                    double pix[] = diffImage.get(j, i);
+                    /*compute euclidean distance*/
+                    double dist = (pix[0]*pix[0] + pix[1]*pix[1] + pix[2]*pix[2]);
+                    dist = Math.sqrt(dist);
+                    if ( dist> threshold ) {
+                        foreGroundMask.put(j, i, 255);//pixels to draw
+                    }
                 }
             }
         }
-        Mat f2=new Mat(s,image.type());
+        Mat f2=new Mat(s,currentFrameFaceROI.type());
         Imgproc.resize(foreGroundMask,f2,s);
         return f2;
     }
@@ -206,6 +220,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
         return rect;
     }
 
+    /*resize the RegionOfInterest dimensions*/
     public Rect incrementROISize(Rect roi){
         double h=roi.height;
         double hdiff= (h/100)*90;
@@ -265,7 +280,7 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
 
     @Override
     public void onTimerOn() {
-        isToDeliverCurrentFrame=true;
+        isCurrentFrameToDeliver =true;
     }
 
     private class Ellipse{
@@ -295,11 +310,11 @@ public class Hangman implements BackgroundUpdaterThread.BackgroundUpdaterListene
     }
 
 
-    public void stopThread(){
+    public void stopThreads(){
         backgroundUpdaterThread.stopThread();
         backgroundUpdaterTimerThread.stopThread();
     }
-    public void startThread(){
+    public void startThreads(){
         if(!backgroundUpdaterTimerThread.isAlive()){
             backgroundUpdaterTimerThread.start();
         }
