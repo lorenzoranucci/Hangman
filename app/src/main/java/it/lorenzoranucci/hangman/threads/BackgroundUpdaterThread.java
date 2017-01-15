@@ -1,4 +1,4 @@
-package it.lorenzoranucci.hangman;
+package it.lorenzoranucci.hangman.threads;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;

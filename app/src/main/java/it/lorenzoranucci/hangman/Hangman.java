@@ -13,6 +13,9 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
+import it.lorenzoranucci.hangman.threads.BackgroundUpdaterThread;
+import it.lorenzoranucci.hangman.threads.BackgroundUpdaterTimerThread;
+
 
 /**
  * Created by Lorenzo on 01/07/2015.

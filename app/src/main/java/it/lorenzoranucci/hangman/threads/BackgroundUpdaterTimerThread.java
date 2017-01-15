@@ -1,4 +1,4 @@
-package it.lorenzoranucci.hangman;
+package it.lorenzoranucci.hangman.threads;
 
 /**
  * Created by Lorenzo on 31/07/2015.
