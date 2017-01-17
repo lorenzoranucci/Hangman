@@ -66,7 +66,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.javaCamera);
             mOpenCvCameraView.setMaxFrameSize(640, 480);
             mOpenCvCameraView.setCameraIndex(mCameraId);
-            mOpenCvCameraView.enableFpsMeter();
+            //mOpenCvCameraView.enableFpsMeter();
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
@@ -80,6 +80,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
             seekBarQ.setOnSeekBarChangeListener(this);
             seekBarQ.setMax(90);
+            seekBarT.setProgress(hangman.getQuality());
 
             /*create button for background init*/
             ImageButton buttonBg= (ImageButton) findViewById(R.id.backgroundButton);
@@ -130,6 +131,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         /*Create the Hangman object and pass it the cascade file path*/
         CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
         this.hangman =new Hangman(mJavaDetector);
+        this.hangman.start();
     }
 
 
@@ -141,7 +143,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.disableView();
         }
         if(hangman !=null){
-            hangman.stopThreads();
+            hangman.stop();
         }
 
     }
@@ -161,7 +163,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             mOpenCvCameraView.enableView();
         }
         if(hangman !=null){
-            hangman.startThreads();
+            hangman.start();
         }
     }
 
