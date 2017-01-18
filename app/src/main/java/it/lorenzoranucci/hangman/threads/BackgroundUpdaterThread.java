@@ -1,5 +1,6 @@
 package it.lorenzoranucci.hangman.threads;
 
+import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -82,9 +83,9 @@ public class BackgroundUpdaterThread extends Thread {
 
 
 
-    public void setCurrentFrame(Mat frame) {
+    public void setCurrentFrame(Mat currentFrame) {
         isThereANewFrame = true;
-        list.addLast(frame.clone());
+        list.addLast(currentFrame.clone());
         if (list.size() > LIST_SIZE) {
             list.removeFirst();
         }

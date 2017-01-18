@@ -28,8 +28,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
-import it.lorenzoranucci.hangman.Hangman;
+import it.lorenzoranucci.hangman.workers.Hangman;
 import it.lorenzoranucci.hangman.R;
 
 /**
@@ -50,6 +52,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     private int mCameraId = 0;
 
     private boolean intentImageCapture;
+    private boolean isToManuallyUpdateBackground=false;
 
 
     /*Callback for activity creation*/
@@ -64,9 +67,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
             mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.javaCamera);
-            mOpenCvCameraView.setMaxFrameSize(640, 480);
+            //mOpenCvCameraView.setMaxFrameSize(640, 480);
             mOpenCvCameraView.setCameraIndex(mCameraId);
-            //mOpenCvCameraView.enableFpsMeter();
+            mOpenCvCameraView.enableFpsMeter();
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
@@ -80,7 +83,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
             seekBarQ.setOnSeekBarChangeListener(this);
             seekBarQ.setMax(90);
-            seekBarT.setProgress(hangman.getQuality());
+            //seekBarT.setProgress(hangman.getQuality());
 
             /*create button for background init*/
             ImageButton buttonBg= (ImageButton) findViewById(R.id.backgroundButton);
@@ -93,7 +96,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             /*create button for camera switch*/
             ImageButton changeCamera= (ImageButton) findViewById(R.id.changeCamera);
             changeCamera.setOnClickListener(this);
-            seekBarT.setProgress(hangman.getThreshold());
+            //seekBarT.setProgress(hangman.getThreshold());
 
             /*check if app is launched with intent image capture*/
             Intent intent = getIntent();
@@ -128,10 +131,9 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         is.close();
         os.close();
 
-        /*Create the Hangman object and pass it the cascade file path*/
+        /*Create the FaceMaskGeneratorPCB object and pass it the cascade file path*/
         CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-        this.hangman =new Hangman(mJavaDetector);
-        this.hangman.start();
+        this.hangman =new Hangman(mJavaDetector,Hangman.PIXEL_COLOR_BASED);
     }
 
 
@@ -141,9 +143,6 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         super.onDestroy();
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.disableView();
-        }
-        if(hangman !=null){
-            hangman.stop();
         }
 
     }
@@ -161,9 +160,6 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         super.onResume();
         if (mOpenCvCameraView != null) {
             mOpenCvCameraView.enableView();
-        }
-        if(hangman !=null){
-            hangman.start();
         }
     }
 
@@ -186,9 +182,12 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     /*called every time the camera view send a frame to the activity (every frame it captures)*/
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        if(isToManuallyUpdateBackground){
+            isToManuallyUpdateBackground=false;
+            hangman.initBackground(inputFrame);
+        }
         /*apply image effects to new frame*/
         Mat mat= hangman.decapitate(inputFrame);
-
         /*check if users clicked the capture button and if external storage is writable for save it*/
         if(isToSaveBitmap && isExternalStorageWritable()){
             isToSaveBitmap=false;
@@ -262,19 +261,27 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         if(hangman !=null){
+            String paramName="";
             if(seekBar.getId()==R.id.quality){
-                hangman.setQuality(progress);
+                paramName="quality";
             }
             else  if(seekBar.getId()==R.id.threshold){
-                hangman.setThreshold(progress);
+                paramName="threshold";
             }
-
+            Map<String,String> params=new HashMap<>();
+            params.put(paramName,String.valueOf(progress));
+            hangman.getFaceMaskGenerator().setParameters(params);
         }
     }
 
     @Override
     public void onStartTrackingTouch(SeekBar seekBar) {
-
+        if(seekBar.getId()==R.id.quality){
+            seekBar.setProgress(10);
+        }
+        else  if(seekBar.getId()==R.id.threshold){
+            seekBar.setProgress(16);
+        }
     }
 
     @Override
@@ -288,7 +295,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     public void onClick(View v) {
         if (hangman != null) {
             if (v.getId() == R.id.backgroundButton) {
-                hangman.setBackground();
+                isToManuallyUpdateBackground=true;
             } else if (v.getId() == R.id.captureButton) {
                 isToSaveBitmap = true;
             } else if (v.getId() == R.id.changeCamera) {
@@ -317,7 +324,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         mCameraId = mCameraId^1; //bitwise not operation to flip 1 to 0 and vice versa
         mOpenCvCameraView.disableView();
         if (hangman !=null){
-            hangman.setNullBackground();
+            hangman.stop();
         }
         mOpenCvCameraView.setCameraIndex(mCameraId);
         mOpenCvCameraView.enableView();
