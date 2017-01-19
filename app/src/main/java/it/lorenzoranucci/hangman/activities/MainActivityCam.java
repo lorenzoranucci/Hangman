@@ -13,11 +13,15 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.android.JavaCameraView;
 import org.opencv.android.Utils;
 import org.opencv.core.CvException;
 import org.opencv.core.Mat;
@@ -37,13 +41,13 @@ import it.lorenzoranucci.hangman.R;
 /**
  * Created by Lorenzo on 01/07/2015.
  */
-public class MainActivityCam extends Activity implements  CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, View.OnClickListener {
+public class MainActivityCam extends Activity implements  CvCameraViewListener2, View.OnTouchListener, SeekBar.OnSeekBarChangeListener, View.OnClickListener,AdapterView.OnItemSelectedListener {
 
     static {
         System.loadLibrary("opencv_java3");
     } //the name of the .so file, without the 'lib' prefix
 
-    private CameraBridgeViewBase mOpenCvCameraView;
+    private JavaCameraView mOpenCvCameraView;
 
 
     private Hangman hangman;
@@ -66,24 +70,14 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             setContentView(R.layout.main);
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-            mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.javaCamera);
+            mOpenCvCameraView = (JavaCameraView) findViewById(R.id.javaCamera);
             //mOpenCvCameraView.setMaxFrameSize(640, 480);
             mOpenCvCameraView.setCameraIndex(mCameraId);
             mOpenCvCameraView.enableFpsMeter();
             mOpenCvCameraView.setCvCameraViewListener(this);
             mOpenCvCameraView.setOnTouchListener(this);
             mOpenCvCameraView.enableView();
-
-            /*create seekbar for threshold*/
-            SeekBar seekBarT= (SeekBar) findViewById(R.id.threshold);
-            seekBarT.setOnSeekBarChangeListener(this);
-            seekBarT.setMax(45);
-
-            /*create seekbar for quality*/
-            SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
-            seekBarQ.setOnSeekBarChangeListener(this);
-            seekBarQ.setMax(90);
-            //seekBarT.setProgress(hangman.getQuality());
+            //mOpenCvCameraView.getmCamera().setParameters(params);
 
             /*create button for background init*/
             ImageButton buttonBg= (ImageButton) findViewById(R.id.backgroundButton);
@@ -96,7 +90,24 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
             /*create button for camera switch*/
             ImageButton changeCamera= (ImageButton) findViewById(R.id.changeCamera);
             changeCamera.setOnClickListener(this);
-            //seekBarT.setProgress(hangman.getThreshold());
+
+            Spinner spinner = (Spinner) findViewById(R.id.selectBGSubtractor);
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                    R.array.background_subtractors_available, android.R.layout.simple_spinner_item);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinner.setAdapter(adapter);
+            spinner.setOnItemSelectedListener(this);
+
+            SeekBar seekBarT= (SeekBar) findViewById(R.id.threshold);
+            seekBarT.setOnSeekBarChangeListener(this);
+            seekBarT.setMax(100);
+            seekBarT.setProgress(50);
+
+            SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
+            seekBarQ.setOnSeekBarChangeListener(this);
+            seekBarQ.setMax(100);
+            seekBarQ.setProgress(50);
+
 
             /*check if app is launched with intent image capture*/
             Intent intent = getIntent();
@@ -131,7 +142,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         is.close();
         os.close();
 
-        /*Create the FaceMaskGeneratorPCB object and pass it the cascade file path*/
+        /*Create the FaceMaskGeneratorCIE1994 object and pass it the cascade file path*/
         CascadeClassifier mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
         this.hangman =new Hangman(mJavaDetector,Hangman.PIXEL_COLOR_BASED);
     }
@@ -181,7 +192,7 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
 
     /*called every time the camera view send a frame to the activity (every frame it captures)*/
     @Override
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+    public synchronized Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         if(isToManuallyUpdateBackground){
             isToManuallyUpdateBackground=false;
             hangman.initBackground(inputFrame);
@@ -261,11 +272,11 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         if(hangman !=null){
-            String paramName="";
+            String paramName;
             if(seekBar.getId()==R.id.quality){
                 paramName="quality";
             }
-            else  if(seekBar.getId()==R.id.threshold){
+            else{
                 paramName="threshold";
             }
             Map<String,String> params=new HashMap<>();
@@ -329,6 +340,48 @@ public class MainActivityCam extends Activity implements  CvCameraViewListener2,
         mOpenCvCameraView.setCameraIndex(mCameraId);
         mOpenCvCameraView.enableView();
     }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        switch(position){
+            case 0: hangman.setFaceMaskGenerator(Hangman.PIXEL_COLOR_BASED);
+                break;
+            case 1: hangman.setFaceMaskGenerator(Hangman.MOG2);
+                break;
+            case 2: hangman.setFaceMaskGenerator(Hangman.KNN);
+                break;
+            default: hangman.setFaceMaskGenerator(Hangman.PIXEL_COLOR_BASED);
+        }
+
+        SeekBar seekBarT= (SeekBar) findViewById(R.id.threshold);
+        SeekBar seekBarQ= (SeekBar) findViewById(R.id.quality);
+        View seekBarTL=  findViewById(R.id.threshold_label);
+        View seekBarQL=  findViewById(R.id.quality_label);
+        seekBarT.setVisibility(View.GONE);
+        seekBarQ.setVisibility(View.GONE);
+        seekBarTL.setVisibility(View.GONE);
+        seekBarQL.setVisibility(View.GONE);
+        Map<String,String> params=hangman.getFaceMaskGenerator().getParameters();
+        if(params!=null){
+            if(params.containsKey("threshold")){
+                seekBarT.setVisibility(View.VISIBLE);
+                seekBarTL.setVisibility(View.VISIBLE);
+            }
+            if(params.containsKey("quality")){
+                seekBarQ.setVisibility(View.VISIBLE);
+                seekBarQL.setVisibility(View.VISIBLE);
+            }
+        }
+        seekBarQ.setProgress(50);
+        seekBarT.setProgress(50);
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
+
+
 }
 
 

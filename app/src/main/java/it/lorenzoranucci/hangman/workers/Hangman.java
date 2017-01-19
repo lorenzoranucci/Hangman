@@ -18,9 +18,6 @@ public class Hangman {
     public final static int MOG2=1;
     public final static int KNN=2;
 
-    public CascadeClassifier getmJavaDetector() {
-        return mJavaDetector;
-    }
 
     private FaceMaskGenerator faceMaskGenerator;
 
@@ -59,7 +56,7 @@ public class Hangman {
      * @param inputFrame The last frame captured by the camera
      * @return The edited frame.
      */
-    public Mat decapitate(CameraBridgeViewBase.CvCameraViewFrame inputFrame){
+    public synchronized Mat decapitate(CameraBridgeViewBase.CvCameraViewFrame inputFrame){
         Mat currentFrameMat = inputFrame.rgba();
         Rect sourceFaceROI = null;
         Rect destFaceROI = null;
@@ -79,11 +76,19 @@ public class Hangman {
                     && destFaceROI != null) {
                 Mat faceMask = faceMaskGenerator.getFaceMask(currentFrameMat ,  sourceFaceROI);
                 if(faceMask!=null && faceMask.size().equals(sourceFaceROI.size()) && faceMask.size().equals(destFaceROI.size())){
-                    /*replace face region of interest with the old background*/
-                    copyMatToMat(currentFrameMat, background, sourceFaceROI, sourceFaceROI, faceMask);
-                /*replace face destination region of interest with the captured face*/
-                    copyMatToMat(currentFrameMat, lastFaceFrame, destFaceROI, sourceFaceROI, faceMask);
+                    try{
+                        ellipsizeFaceMask(faceMask);
+                        /*replace face region of interest with the old background*/
+                        copyMatToMat(currentFrameMat, background, sourceFaceROI, sourceFaceROI, faceMask);
+                        /*replace face destination region of interest with the captured face*/
+                        copyMatToMat(currentFrameMat, lastFaceFrame, destFaceROI, sourceFaceROI, faceMask);
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                    }
                 }
+                faceMask.release();
+                lastFaceFrame.release();
             }
         }
         return currentFrameMat;
@@ -98,6 +103,7 @@ public class Hangman {
         Mat currentFrameMat=inputFrame.gray();
         frameWidth=currentFrameMat.width();
         frameHeight=currentFrameMat.height();
+        currentFrameMat.release();
     }
 
     /**
@@ -118,6 +124,7 @@ public class Hangman {
                     maxRect = rects[i];
                 }
             }
+            faceDetections.release();
             return incrementROISize(maxRect);
         }
         return null;
@@ -260,16 +267,47 @@ public class Hangman {
         return rect;
     }
 
+    private class Ellipse {
+        Point center;
+        double semiMajorAxis;
+        double semiMinorAxis;
 
-    public void setFaceMaskGenerator(int backgroundSubtractionType) {
+        Ellipse(double centerA, double centerB, double semiMajorAxis, double semiMinorAxis) {
+            this.center = new Point(centerA, centerB);
+            this.semiMajorAxis = semiMajorAxis;
+            this.semiMinorAxis = semiMinorAxis;
+        }
+
+        boolean contains(Point point) {
+            double distance = (((point.x - center.x) * (point.x - center.x)) / (semiMajorAxis * semiMajorAxis)) +
+                    (((point.y - center.y) * (point.y - center.y)) / (semiMinorAxis * semiMinorAxis));
+            return distance <= 1;
+        }
+    }
+
+    private void ellipsizeFaceMask(Mat faceMask){
+        double xE = faceMask.cols() / 2;
+        double yE = faceMask.rows() / 2;
+        Ellipse ellipse = new Ellipse(xE, yE, xE, yE);
+        for (int j = 0; j < faceMask.rows(); ++j) {
+            for (int i = 0; i < faceMask.cols(); ++i) {
+                if (!ellipse.contains(new Point(i, j))) {
+                    faceMask.put(j, i, 0);//pixels to draw
+                }
+            }
+        }
+    }
+
+
+    public synchronized void setFaceMaskGenerator(int backgroundSubtractionType) {
         switch (backgroundSubtractionType){
-            case PIXEL_COLOR_BASED: faceMaskGenerator =new FaceMaskGeneratorPCB();
+            case PIXEL_COLOR_BASED: faceMaskGenerator =new FaceMaskGeneratorCIE1994();
                 break;
-//            case MOG2: faceMaskGenerator=new FaceMaskGeneratorMOG2Thread();
-//                break;
-//            case KNN: faceMaskGenerator=new FaceMaskGeneratorKNNThread();
-//                break;
-            default: faceMaskGenerator =new FaceMaskGeneratorPCB();
+            case MOG2: faceMaskGenerator=new FaceMaskGeneratorMOG2();
+                break;
+            case KNN: faceMaskGenerator=new FaceMaskGeneratorKNN();
+                break;
+            default: faceMaskGenerator =new FaceMaskGeneratorCIE1994();
         }
     }
 
@@ -279,4 +317,6 @@ public class Hangman {
 
     public void stop(){
     }
+
+
 }

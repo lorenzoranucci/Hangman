@@ -1,7 +1,16 @@
 <resources>
-    <string name="app_name">Tagliatore di\n teste</string>
+    <string name="app_name">Hangman</string>
     <string name="action_settings">Impostazioni</string>
     <string name="lower_battery_string">Batteria quasi scarica</string>
     <string name="saved_photo">Immagine salvata nella cartella Boia!</string>
     <string name="cascade_error">Errore nella lettura del file cascade</string>
+    <string name="quality">Qualità</string>
+    <string name="threshold">Threshold</string>
+
+
+    <string-array name="background_subtractors_available">
+        <item>CIE1994 BS mode</item>
+        <item>MOG2 BS mode</item>
+        <item>KNN BS mode</item>
+    </string-array>
 </resources>

@@ -4,4 +4,12 @@
     <string name="lower_battery">Lower battery</string>
     <string name="saved_photo">Image saved on Boia folder!</string>
     <string name="cascade_error">Error with reading of cascade file</string>
+    <string name="quality">Quality</string>
+    <string name="threshold">Threshold</string>
+
+    <string-array name="background_subtractors_available">
+        <item>CIE1994 BS mode</item>
+        <item>MOG2 BS mode</item>
+        <item>KNN BS mode</item>
+    </string-array>
 </resources>

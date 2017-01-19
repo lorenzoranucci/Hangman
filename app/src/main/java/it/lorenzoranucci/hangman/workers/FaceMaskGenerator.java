@@ -20,5 +20,6 @@ public abstract class FaceMaskGenerator {
     public abstract Mat getNewBackground();
     public abstract void initBackground(CameraBridgeViewBase.CvCameraViewFrame currentFrame);
     public abstract void setParameters(Map<String, String> parameters);
+    public abstract Map<String, String> getParameters();
 
 }

@@ -37,8 +37,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20dp"
-        android:text="Threshold"
-        android:layout_gravity="center_horizontal|bottom" />
+        android:text="@string/threshold"
+        android:layout_gravity="center_horizontal|bottom"
+        android:id="@+id/threshold_label"
+        android:labelFor="@id/threshold"/>
 
     <SeekBar
         android:id="@+id/quality"
@@ -49,10 +51,11 @@
         />
 
     <TextView
+        android:id="@+id/quality_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="20dp"
-        android:text="Quality"
+        android:text="@string/quality"
         android:labelFor="@id/quality"
         android:layout_gravity="center_horizontal|top" />
 
@@ -62,6 +65,12 @@
         android:layout_height="50dp"
         android:background="@drawable/changecamera"
         android:layout_gravity="left|center_vertical" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/selectBGSubtractor"
+        android:layout_gravity="left|top"/>
 
 
 </FrameLayout>
